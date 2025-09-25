@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Página de consulta</h2>
+<form method="get">
+  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por folio, nombre, CURP o RFC" />
+  <button type="submit">Buscar</button>
+</form>
+
+<table role="grid">
+  <thead><tr><th>Folio</th><th>Nombre</th><th>CURP</th><th>RFC</th></tr></thead>
+  <tbody>
+    {% for r in results %}
+    <tr><td>{{ r.folio }}</td><td>{{ r.nombre }}</td><td>{{ r.curp }}</td><td>{{ r.rfc }}</td></tr>
+    {% empty %}
+    <tr><td colspan="4">Sin resultados</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

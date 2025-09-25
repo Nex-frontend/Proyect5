@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prestaciones</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    body { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+    aside { background: #0f172a; color: #fff; padding: 1rem; }
+    aside a { color: #e2e8f0; display: block; padding: .5rem 0; text-decoration: none; }
+    main { padding: 1.5rem; }
+    .drag-area { border: 2px dashed #64748b; padding: 2rem; text-align:center; border-radius: 8px; }
+    table { width: 100%; }
+  </style>
+</head>
+<body>
+  <aside>
+    <h3>Prestaciones</h3>
+    <nav>
+      <strong>Foviste</strong>
+      <a href="{% url 'carga' %}">Página de carga</a>
+      <a href="{% url 'consulta' %}">Página de consulta</a>
+      <hr>
+      {% if user.is_authenticated %}
+        <span>Hola, {{ user.get_username }}</span>
+        <a href="{% url 'logout' %}">Salir</a>
+      {% else %}
+        <a href="{% url 'login' %}">Ingresar</a>
+      {% endif %}
+    </nav>
+  </aside>
+  <main>
+    {% if messages %}
+      {% for message in messages %}
+        <article class="{{ message.tags }}">{{ message }}</article>
+      {% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
