@@ -6,7 +6,7 @@ def conectar_bd():
     """Establece la conexión con la base de datos MySQL"""
     try:
         print("Intentando conectar a la base de datos...")
-        print(f"Host: localhost, Puerto: 3307, Usuario: root, Base de datos: webquery_db")
+        print(f"Host: localhost, Puerto: 3306, Usuario: root, Base de datos: webquery_db")
        
         conexion = mysql.connector.connect(
             host='localhost',
@@ -63,7 +63,7 @@ def insertar_registro(conexion, registro):
             'qna_ini': 'qna_ini'
         }
        
-        # Filtrar solo las columnas que existen en la tabla
+        # Filtra solo las columnas que existen en la tabla
         campos_disponibles = []
         valores_a_insertar = []
        
