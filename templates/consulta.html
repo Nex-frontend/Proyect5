@@ -2,17 +2,47 @@
 {% block content %}
 <h2>Página de consulta</h2>
 <form method="get">
-  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por folio, nombre, CURP o RFC" />
+  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por RFC, Nombre, Cadena1, QNA, etc." />
   <button type="submit">Buscar</button>
+  {% if q %}<small>Mostrando resultados para: <strong>{{ q }}</strong></small>{% endif %}
+  <br>
 </form>
 
 <table role="grid">
-  <thead><tr><th>Folio</th><th>Nombre</th><th>CURP</th><th>RFC</th></tr></thead>
+  <thead>
+    <tr>
+      <th>RFC</th>
+      <th>Nombre</th>
+      <th>Cadena1</th>
+      <th>Tipo</th>
+      <th>Importe</th>
+      <th>CPTO</th>
+      <th>Lote act.</th>
+      <th>QNA</th>
+      <th>Ptje</th>
+      <th>Observación</th>
+      <th>Lote ant.</th>
+      <th>QNA ini</th>
+    </tr>
+  </thead>
   <tbody>
     {% for r in results %}
-    <tr><td>{{ r.folio }}</td><td>{{ r.nombre }}</td><td>{{ r.curp }}</td><td>{{ r.rfc }}</td></tr>
+    <tr>
+      <td>{{ r.rfc }}</td>
+      <td>{{ r.nombre }}</td>
+      <td>{{ r.cadena1 }}</td>
+      <td>{{ r.tipo }}</td>
+      <td>{{ r.impor }}</td>
+      <td>{{ r.cpto }}</td>
+      <td>{{ r.lote_actual }}</td>
+      <td>{{ r.qna }}</td>
+      <td>{{ r.ptje }}</td>
+      <td>{{ r.observacio }}</td>
+      <td>{{ r.lote_anterior }}</td>
+      <td>{{ r.qna_ini }}</td>
+    </tr>
     {% empty %}
-    <tr><td colspan="4">Sin resultados</td></tr>
+    <tr><td colspan="12">Sin resultados</td></tr>
     {% endfor %}
   </tbody>
 </table>

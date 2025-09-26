@@ -1,4 +1,3 @@
-import csv
 import io
 
 from django.contrib import messages
@@ -65,7 +64,18 @@ def consulta_view(request: HttpRequest) -> HttpResponse:
     results = []
     if q:
         results = Record.objects.filter(
-            Q(folio__icontains=q) | Q(nombre__icontains=q) | Q(curp__icontains=q) | Q(rfc__icontains=q)
+            Q(rfc__icontains=q) |
+            Q(nombre__icontains=q) |
+            Q(cadena1__icontains=q) |
+            Q(tipo__icontains=q) |
+            Q(impor__icontains=q) |
+            Q(cpto__icontains=q) |
+            Q(lote_actual__icontains=q) |
+            Q(qna__icontains=q) |
+            Q(ptje__icontains=q) |
+            Q(observacio__icontains=q) |
+            Q(lote_anterior__icontains=q) |
+            Q(qna_ini__icontains=q)
         )
         add_activity(request.user, 'consulta', f'busqueda q="{q}"')
     return render(request, 'consulta.html', {'q': q, 'results': results})
@@ -73,8 +83,14 @@ def consulta_view(request: HttpRequest) -> HttpResponse:
 @login_required
 @permission_required('fovisste.add_record', raise_exception=True)
 def api_upload_view(request: HttpRequest) -> JsonResponse:
-    # Punto de subida vía drag & drop (archivos)
-    # Soporta CSV/TXT con encabezados folio,nombre,curp,rfc o posiciones [0..3] en ese orden.
+    """Carga de archivos de ancho fijo y grabado directo en MySQL vía ORM.
+
+    Formato confirmado (posiciones 0..159, longitudes entre paréntesis):
+      rfc(13), nombre(30), cadena1(37), tipo(1), impor(8), cpto(2), lote_actual(1),
+      qna(6), ptje(2), observacio(47), lote_anterior(6), qna_ini(6)
+
+    Valida que cada línea tenga al menos 159 caracteres (las faltantes se reportan como error).
+    """
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'Metodo no permitido'}, status=405)
 
@@ -85,6 +101,24 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
     total_created = 0
     errors = []
 
+    # Definición de cortes fixed-width (inicio, fin)
+    FIELDS = [
+        ("rfc", 0, 13),
+        ("nombre", 13, 43),
+        ("cadena1", 43, 80),
+        ("tipo", 80, 81),
+        ("impor", 81, 89),
+        ("cpto", 89, 91),
+        ("lote_actual", 91, 92),
+        ("qna", 92, 98),
+        ("ptje", 98, 100),
+        ("observacio", 100, 147),
+        ("lote_anterior", 147, 153),
+        ("qna_ini", 153, 159),
+    ]
+    REQUIRED_LINE_LEN = 159
+    REQUIRED_MIN_LEN = 100  # según aclaración: si la línea tiene 100, el resto son blancos
+
     for f in files:
         try:
             content = f.read()
@@ -94,58 +128,50 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
             except UnicodeDecodeError:
                 text = content.decode('latin-1')
 
-            buf = io.StringIO(text)
-            sample = text[:4096]
-            try:
-                dialect = csv.Sniffer().sniff(sample, delimiters=',;\t|')
-            except Exception:
-                # por defecto coma
-                dialect = csv.excel
-                dialect.delimiter = ','
-
-            reader = csv.reader(buf, dialect)
-            rows = list(reader)
-            if not rows:
+            lines = [ln.rstrip('\r\n') for ln in text.splitlines() if ln.strip()]
+            if not lines:
                 continue
 
-            # Detectar encabezados
-            header = [h.strip().lower() for h in rows[0]]
-            has_header = set({'folio', 'nombre', 'curp', 'rfc'}).issubset(set(header))
-            start_idx = 1 if has_header else 0
-
-            def get_val(row, key_or_idx):
-                if isinstance(key_or_idx, int):
-                    return (row[key_or_idx] if len(row) > key_or_idx else '').strip()
-                try:
-                    idx = header.index(key_or_idx)
-                    return (row[idx] if len(row) > idx else '').strip()
-                except Exception:
-                    return ''
-
+            batch = []
             with transaction.atomic():
-                for r in rows[start_idx:]:
-                    if not any(r):
+                for idx, line in enumerate(lines, start=1):
+                    if len(line) < REQUIRED_MIN_LEN:
+                        errors.append({
+                            'file': f.name,
+                            'line': idx,
+                            'error': f'Longitud {len(line)} < {REQUIRED_MIN_LEN}',
+                        })
                         continue
-                    folio = get_val(r, 'folio') if has_header else get_val(r, 0)
-                    nombre = get_val(r, 'nombre') if has_header else get_val(r, 1)
-                    curp = get_val(r, 'curp') if has_header else get_val(r, 2)
-                    rfc = get_val(r, 'rfc') if has_header else get_val(r, 3)
-                    if not folio and not nombre:
-                        # fila inválida mínima
-                        continue
-                    Record.objects.create(
-                        folio=folio[:50],
-                        nombre=nombre[:150] if nombre else '',
-                        curp=curp[:18] if curp else None,
-                        rfc=rfc[:13] if rfc else None,
-                    )
-                    total_created += 1
+                    # Asegurar ancho para cortes (pad con espacios hasta 159)
+                    if len(line) < REQUIRED_LINE_LEN:
+                        line = line.ljust(REQUIRED_LINE_LEN)
+                    data = {}
+                    for field, start, end in FIELDS:
+                        data[field] = line[start:end].rstrip()
 
-            add_activity(request.user, 'carga', f'{f.name} subido, {total_created} registros (acumulado)')
+                    # Crear instancia usando ORM (se insertará en MySQL)
+                    rec = Record(
+                        rfc=data['rfc'][:13],
+                        nombre=data['nombre'][:30],
+                        cadena1=(data['cadena1'][:37] or None),
+                        tipo=data['tipo'][:1],
+                        impor=data['impor'][:8],
+                        cpto=data['cpto'][:2],
+                        lote_actual=data['lote_actual'][:1],
+                        qna=data['qna'][:6],
+                        ptje=data['ptje'][:2],
+                        observacio=(data['observacio'][:47] or None),
+                        lote_anterior=(data['lote_anterior'][:6] or None),
+                        qna_ini=(data['qna_ini'][:6] or None),
+                    )
+                    batch.append(rec)
+
+                if batch:
+                    Record.objects.bulk_create(batch, batch_size=1000)
+                    total_created += len(batch)
+
+            add_activity(request.user, 'carga', f'{f.name}: creados {len(batch)} registros')
         except Exception as e:
-            errors.append({
-                'file': f.name,
-                'error': str(e),
-            })
+            errors.append({'file': f.name, 'error': str(e)})
 
     return JsonResponse({'ok': True, 'created': total_created, 'errors': errors})

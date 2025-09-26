@@ -10,13 +10,42 @@
 
 <h3>Registros cargados</h3>
 <table role="grid">
-  <thead><tr><th>Folio</th><th>Nombre</th><th>CURP</th><th>RFC</th></tr></thead>
+  <thead>
+    <tr>
+      <th>RFC</th>
+      <th>Nombre</th>
+      <th>Cadena1</th>
+      <th>Tipo</th>
+      <th>Importe</th>
+      <th>CPTO</th>
+      <th>Lote act.</th>
+      <th>QNA</th>
+      <th>Ptje</th>
+      <th>Observación</th>
+      <th>Lote ant.</th>
+      <th>QNA ini</th>
+    </tr>
+  </thead>
   <tbody id="records-body">
     {% for r in records %}
-    <tr><td>{{ r.folio }}</td><td>{{ r.nombre }}</td><td>{{ r.curp }}</td><td>{{ r.rfc }}</td></tr>
+    <tr>
+      <td>{{ r.rfc }}</td>
+      <td>{{ r.nombre }}</td>
+      <td>{{ r.cadena1 }}</td>
+      <td>{{ r.tipo }}</td>
+      <td>{{ r.impor }}</td>
+      <td>{{ r.cpto }}</td>
+      <td>{{ r.lote_actual }}</td>
+      <td>{{ r.qna }}</td>
+      <td>{{ r.ptje }}</td>
+      <td>{{ r.observacio }}</td>
+      <td>{{ r.lote_anterior }}</td>
+      <td>{{ r.qna_ini }}</td>
+    </tr>
     {% endfor %}
   </tbody>
-</table>
+  <caption>Total mostrados: {{ records|length }}</caption>
+  </table>
 
 <script>
 const dropArea = document.getElementById('drop-area');
