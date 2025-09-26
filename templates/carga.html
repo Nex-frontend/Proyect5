@@ -6,6 +6,8 @@
   <input id="fileElem" type="file" multiple style="display:none" />
 </div>
 
+<div id="upload-result" style="margin-top:1rem;"></div>
+
 <h3>Registros cargados</h3>
 <table role="grid">
   <thead><tr><th>Folio</th><th>Nombre</th><th>CURP</th><th>RFC</th></tr></thead>
@@ -35,8 +37,32 @@ function handleDrop(e) { handleFiles(e.dataTransfer.files); }
 function handleFiles(files) {
   const formData = new FormData();
   for (let i=0; i<files.length; i++) formData.append('files', files[i]);
-  fetch('{% url 'api_upload' %}', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') }, body: formData })
-    .then(r => r.json()).then(data => { if (data.ok) location.reload(); });
+  const out = document.getElementById('upload-result');
+  out.innerHTML = 'Subiendo...';
+  fetch('{% url 'api_upload' %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      body: formData
+    })
+    .then(async r => {
+      let data;
+      try { data = await r.json(); } catch(e) { data = { ok:false, error: 'Respuesta no válida del servidor' }; }
+      if (!r.ok) throw data;
+      return data;
+    })
+    .then(data => {
+      if (data.ok) {
+        out.innerHTML = `Cargados: ${data.created}.` + (data.errors && data.errors.length ? ` Errores: ${data.errors.length}` : '');
+        // Refresca la tabla para ver nuevos registros
+        setTimeout(() => location.reload(), 800);
+      } else {
+        out.innerHTML = `Error: ${data.error || 'Error desconocido'}`;
+      }
+    })
+    .catch(err => {
+      const msg = err && err.error ? err.error : (typeof err === 'string' ? err : 'Error desconocido (¿permisos? ¿CSRF? ¿Conexión a BD?)');
+      out.innerHTML = `Falló la carga: ${msg}`;
+    });
 }
 
 function getCookie(name) {

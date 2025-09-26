@@ -93,6 +93,9 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
+# CSRF: permitir acceso al token por JavaScript para peticiones fetch (drag & drop)
+CSRF_COOKIE_HTTPONLY = False
+
 # Email (password reset)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
