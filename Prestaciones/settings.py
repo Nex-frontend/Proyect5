@@ -21,7 +21,7 @@ INSTALLED_APPS = [
     'fovisste.apps.FovissteConfig',
 ]
 
-MIDDLEWARE = [
+MIDDLEWARE = [ # mis middlewares 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -31,9 +31,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'Prestaciones.urls'
+ROOT_URLCONF = 'Prestaciones.urls' # URL principal
 
-TEMPLATES = [
+TEMPLATES = [ # mis plantillas
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [BASE_DIR / 'templates'],
