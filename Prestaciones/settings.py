@@ -91,7 +91,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
-LOGOUT_REDIRECT_URL = 'login'
+#LOGOUT_REDIRECT_URL = 'login' # Comentado para que no redirija al login
 
 # CSRF: permitir acceso al token por JavaScript para peticiones fetch (drag & drop)
 CSRF_COOKIE_HTTPONLY = False
