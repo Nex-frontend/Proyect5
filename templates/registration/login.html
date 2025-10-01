@@ -1,10 +1,12 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Ingresar</h2>
+<h2>Iniciar sesión</h2>
+<p>Ingresa tus credenciales para iniciar sesión:</p>
+
 <form method="post">
   {% csrf_token %}
   {{ form.as_p }}
-  <button type="submit">Entrar</button>
+  <button type="submit" class="btn-entrar">Entrar</button>
 </form>
 <p>¿No tienes cuenta? <a href="{% url 'signup' %}">Regístrate</a></p>
 <p><a href="{% url 'password_reset' %}">¿Olvidaste tu contraseña?</a></p>

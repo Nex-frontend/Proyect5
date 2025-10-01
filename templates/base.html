@@ -1,35 +1,60 @@
 <!doctype html>
 <html lang="es">
-<head>
+  <head> {# se colocan metadatos, estilos y enlaces externos. #}
   <meta charset="utf-8">
+  {# Hace que el diseño sea responsivo en dispositivos móviles, ajustando el ancho al tamaño de pantalla.#}
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  {# Titulo de la pagina #}
   <title>Prestaciones</title>
+  {# Enlace a la hoja de estilos de Pico CSS #}
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  {# Estilos personalizados #}
   <style>
+    {# Divide el cuerpo en dos columnas: una de 240px (menú lateral) y otra que ocupa el resto. Asegura que la altura mínima sea toda la pantalla.#}
     body { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
-    aside { background: #0f172a; color: #fff; padding: 1rem; }
+    {# Estilo para el menú lateral rojo el color de fondo y blanco el texto #}
+    aside { background:rgb(122, 6, 6); color: #fff; padding: 1rem; }
+    {# Estilo para los enlaces del menú lateral #}
     aside a { color: #e2e8f0; display: block; padding: .5rem 0; text-decoration: none; }
+    {# Estilo para el contenido principal color del texto MENU PRINCIPAL #}
+    aside h3 { color:rgb(243, 245, 247); }
     main { padding: 1.5rem; }
+    {# Estilo para el área de arrastrar y soltar #}
     .drag-area { border: 2px dashed #64748b; padding: 2rem; text-align:center; border-radius: 8px; }
     table { width: 100%; }
-  </style>
+    {# Estilo para los botones #}
+    .btn-entrar {
+      background-color:rgb(70, 69, 68);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;         /* Centra el texto dentro del botón */
+      display: block;             /* Permite usar margin auto */
+      margin: 1rem auto;          /* Centra el botón dentro del contenedor */
+    }
+    .btn-entrar:hover {
+      background-color: rgb(170, 170, 170);
+    }
+    </style>
 </head>
 <body>
   <aside>
     <h3>Menu Pricipal</h3>
     <nav>
-      <strong>Foviste</strong>
-      <a href="{% url 'carga' %}">Página de carga</a>
-      <a href="{% url 'consulta' %}">Página de consulta</a>
+      <strong>Fovissste</strong>
+      <a href="{% url 'carga' %}">   - Página de carga</a>
+      <a href="{% url 'consulta' %}"> - Página de consulta</a>
       <hr>
       {% if user.is_authenticated %}
         <span>Hola, {{ user.get_username }}</span>
         <form action="{% url 'logout' %}" method="post">
           {% csrf_token %}
-          <button type="submit">Salir</button>
+          <button type="submit" class="btn-entrar">Salir</button>
         </form>
       {% else %}
-        <a href="{% url 'login' %}">Ingresar</a>
+        <a href="{% url 'login' %}" class="btn-entrar">Ingresar</a>
       {% endif %}
     </nav>
   </aside>
