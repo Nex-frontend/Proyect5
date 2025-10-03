@@ -13,9 +13,11 @@ urlpatterns = [
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
 
+    # URLs de la aplicación
     path('', views.dashboard_view, name='dashboard'),
     path('foviste/carga/', views.carga_view, name='carga'),
     path('foviste/consulta/', views.consulta_view, name='consulta'),
+    path('foviste/qnaproceso/', views.qnaproceso_view, name='qnaproceso'),
 
     # API
     path('api/upload/', views.api_upload_view, name='api_upload'),

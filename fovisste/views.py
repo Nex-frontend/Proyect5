@@ -17,14 +17,14 @@ from .models import Record, Activity
 UPLOADER_GROUP = 'uploader'
 VIEWER_GROUP = 'viewer'
 
-def ensure_roles():
+def ensure_roles(): # Crear roles si no existen
     Group.objects.get_or_create(name=UPLOADER_GROUP)
     Group.objects.get_or_create(name=VIEWER_GROUP)
 
-def add_activity(user, segmento, actividad):
+def add_activity(user, segmento, actividad): # Agregar actividad
     Activity.objects.create(user=user, segmento=segmento, actividad=actividad)
 
-def signup_view(request: HttpRequest) -> HttpResponse:
+def signup_view(request: HttpRequest) -> HttpResponse: # Registro de usuario
     ensure_roles()
     if request.method == 'POST':
         form = SignUpForm(request.POST)
@@ -46,18 +46,21 @@ def signup_view(request: HttpRequest) -> HttpResponse:
         form = SignUpForm()
     return render(request, 'signup.html', {'form': form})
 
-@login_required
+@login_required # Panel principal
 def dashboard_view(request: HttpRequest) -> HttpResponse:
     return render(request, 'dashboard.html')
 
-@login_required
-@permission_required('fovisste.add_record', raise_exception=True)
+@login_required # Carga de archivos
 def carga_view(request: HttpRequest) -> HttpResponse:
+    # Requiere que se haya capturado Quincena Proceso y Lote
+    if not (request.session.get('qna_ini') and request.session.get('lote_anterior')):
+        messages.error(request, 'Debes capturar "Quincena Proceso" y "Lote" antes de realizar la carga.')
+        return redirect('qnaproceso')
     # Renderiza página con drag & drop y tabla CRUD
     records = Record.objects.all()[:200]
     return render(request, 'carga.html', { 'records': records })
 
-@login_required
+@login_required # Consulta de archivos
 @permission_required('fovisste.view_record', raise_exception=True)
 def consulta_view(request: HttpRequest) -> HttpResponse:
     q = request.GET.get('q', '').strip()
@@ -80,19 +83,57 @@ def consulta_view(request: HttpRequest) -> HttpResponse:
         add_activity(request.user, 'consulta', f'busqueda q="{q}"')
     return render(request, 'consulta.html', {'q': q, 'results': results})
 
-@login_required
+@login_required  # Página de quincena en proceso
+def qnaproceso_view(request: HttpRequest) -> HttpResponse:
+    if request.method == 'POST':
+        if 'cancel' in request.POST:
+            request.session.pop('qna_ini', None)
+            request.session.pop('lote_anterior', None)
+            messages.info(request, 'Operación cancelada.')
+            return redirect('dashboard')
+        qna = (request.POST.get('qna_proceso') or '').strip()
+        lote = (request.POST.get('lote') or '').strip()
+        # Validaciones: qna = YYYYMM (6 dígitos), lote = 4 caracteres (asumimos dígitos)
+        import re
+        ok = True
+        if not re.fullmatch(r"\d{6}", qna):
+            messages.error(request, 'Quincena Proceso debe tener 6 dígitos con formato AAAAMM (ejemplo: 202508).')
+            ok = False
+        if not re.fullmatch(r"\d{4}", lote):
+            messages.error(request, 'Lote debe tener 5 dígitos.')
+            ok = False
+        if ok:
+            request.session['qna_ini'] = qna
+            request.session['lote_anterior'] = lote
+            messages.success(request, 'Datos guardados. Ahora puedes realizar la carga de archivos.')
+            return redirect('carga')
+    # GET o POST inválido: renderizar formulario mostrando valores actuales si existen
+    ctx = {
+        'qna_ini': request.session.get('qna_ini', ''),
+        'lote_anterior': request.session.get('lote_anterior', ''),
+    }
+    return render(request, 'qnaproceso.html', ctx)
+
+@login_required # Carga de archivos
 @permission_required('fovisste.add_record', raise_exception=True)
 def api_upload_view(request: HttpRequest) -> JsonResponse:
     """Carga de archivos de ancho fijo y grabado directo en MySQL vía ORM.
 
-    Formato confirmado (posiciones 0..159, longitudes entre paréntesis):
+    Formato confirmado (posiciones 0..158, longitudes entre paréntesis):
       rfc(13), nombre(30), cadena1(37), tipo(1), impor(8), cpto(2), lote_actual(1),
-      qna(6), ptje(2), observacio(47), lote_anterior(6), qna_ini(6)
+      qna(6), ptje(2), observacio(47), lote_anterior(4), qna_ini(5)
 
-    Valida que cada línea tenga al menos 159 caracteres (las faltantes se reportan como error).
+    Valida que cada línea tenga al menos 158 caracteres (las faltantes se reportan como error).
     """
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'Metodo no permitido'}, status=405)
+
+    # Requerir valores en sesión antes de permitir carga
+    if not (request.session.get('qna_ini') and request.session.get('lote_anterior')):
+        return JsonResponse({
+            'ok': False,
+            'error': 'Debes capturar "Quincena Proceso" y "Lote" antes de realizar la carga.'
+        }, status=400)
 
     files = request.FILES.getlist('files')
     if not files:
@@ -114,9 +155,9 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
         ("ptje", 98, 100),
         ("observacio", 100, 147),
         ("lote_anterior", 147, 153),
-        ("qna_ini", 153, 159),
+        ("qna_ini", 153, 157),
     ]
-    REQUIRED_LINE_LEN = 159
+    REQUIRED_LINE_LEN = 157
     REQUIRED_MIN_LEN = 100  # según aclaración: si la línea tiene 100, el resto son blancos
 
     for f in files:
@@ -161,8 +202,9 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
                         qna=data['qna'][:6],
                         ptje=data['ptje'][:2],
                         observacio=(data['observacio'][:47] or None),
-                        lote_anterior=(data['lote_anterior'][:6] or None),
-                        qna_ini=(data['qna_ini'][:6] or None),
+                        # Sobrescribir con sesión si está disponible
+                        lote_anterior=(request.session.get('lote_anterior') or data['lote_anterior'][:6] or None),
+                        qna_ini=(request.session.get('qna_ini') or data['qna_ini'][:4] or None),
                     )
                     batch.append(rec)
 

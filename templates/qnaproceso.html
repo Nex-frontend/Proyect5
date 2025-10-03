@@ -1,7 +1,56 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Carga - Quincena en proceso</h2>
+<h2>Carga - Quincena de proceso</h2>
 
+<form action="" method="post"> {# Formulario de quincena de proceso #}
+  {% csrf_token %} {# Token de seguridad #}
+  <fieldset> {# Campos del formulario #}
+    <label style="display:flex; align-items:center; gap:1rem;">
+      <span style="min-width: 160px;">Quincena de Proceso</span>
+      <input 
+        type="text" 
+        name="qna_proceso" 
+        value="{{ qna_ini }}"
+        placeholder="AAAAQQ" 
+        pattern="\d{6}"
+        maxlength="6"
+        inputmode="numeric"
+        required
+        style="max-width: 160px;"
+      />
+    </label>
+  </fieldset>
 
+  <fieldset> {# Campos del formulario #}
+    <label style="display:flex; align-items:center; gap:1rem;">
+      <span style="min-width: 160px;">Lote</span>
+      <input 
+        type="text" 
+        name="lote" 
+        value="{{ lote_anterior }}"
+        placeholder="2560" 
+        pattern="\d{4}"
+        maxlength="4"
+        inputmode="numeric"
+        required
+        style="max-width: 120px;"
+      />
+    </label>
+  </fieldset>
+
+  <div style="display:flex; gap:1rem; justify-content:center; margin-top:1rem;"> {# Botones del formulario #}
+    <button type="submit" name="save" class="btn-entrar">Cargar</button>
+    <button type="submit" name="cancel" class="btn-entrar" formnovalidate>Cancelar</button>
+  </div>
+</form>
+
+<script> // Script para validar los campos
+  // Restringe a dígitos y respeta maxlength
+  document.addEventListener('input', function(e){ // Evento de entrada
+    if (e.target.name === 'qna_proceso' || e.target.name === 'lote') { // Campos a validar
+      e.target.value = e.target.value.replace(/\D+/g,'').slice(0, e.target.maxLength || 99); // Restringe a dígitos y respeta maxlength
+    }
+  });
+</script>
 
 {% endblock %}
