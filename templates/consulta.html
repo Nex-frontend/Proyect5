@@ -23,6 +23,8 @@
       <th>Observación</th>
       <th>Lote</th>
       <th>QNA_Proceso</th>
+      <th>Responsable</th>
+      <th>Fecha de Carga</th>
     </tr>
   </thead>
   <tbody> {# Cuerpo de la tabla #}
@@ -40,6 +42,8 @@
       <td>{{ r.observacio }}</td>
       <td>{{ r.lote_anterior }}</td>
       <td>{{ r.qna_ini }}</td>
+      <td>{{ r.responsable }}</td>
+      <td>{{ r.fecha_carga }}</td>
     </tr>
     {% empty %}
     <tr><td colspan="12">Sin resultados</td></tr>

@@ -1,9 +1,25 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Página de carga</h2>
-<div id="drop-area" class="drag-area"> {# Área de arrastrar y soltar archivos #}
-  Arrastra y suelta archivos aquí o haz clic para seleccionar.
-  <input id="fileElem" type="file" multiple style="display:none" /> {# Input oculto para seleccionar archivos #}
+
+{% if existing_load %}
+<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
+    <strong>⚠️ Carga Existente:</strong> Ya existe una carga para la Quincena <strong>{{ qna_ini }}</strong> y Lote <strong>{{ lote_anterior }}</strong>.
+    <br>Para realizar una nueva carga debes <a href="{% url 'qnaproceso' %}">reiniciar el proceso</a>.
+</div>
+{% else %}
+<div style="background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
+    <strong>📋 Configuración Actual:</strong> Quincena <strong>{{ qna_ini }}</strong> | Lote <strong>{{ lote_anterior }}</strong>
+</div>
+{% endif %}
+
+<div id="drop-area" class="drag-area" {% if existing_load %}style="opacity: 0.5; pointer-events: none;"{% endif %}> {# Área de arrastrar y soltar archivos #}
+  {% if existing_load %}
+    Área deshabilitada - Ya existe una carga para esta configuración
+  {% else %}
+    Arrastra y suelta archivos aquí o haz clic para seleccionar.
+    <input id="fileElem" type="file" multiple style="display:none" /> {# Input oculto para seleccionar archivos #}
+  {% endif %}
 </div>
 
 <div id="upload-result" style="margin-top:1rem;"></div> {# Resultado de la carga #}
@@ -24,6 +40,8 @@
       <th>Observación</th>
       <th>Lote ant.</th>
       <th>QNA ini</th>
+      <th>Responsable</th>
+      <th>Fecha de Carga</th>
     </tr>
   </thead>
   <tbody id="records-body"> {# Cuerpo de la tabla #}
@@ -41,6 +59,8 @@
       <td>{{ r.observacio }}</td>
       <td>{{ r.lote_anterior }}</td>
       <td>{{ r.qna_ini }}</td>
+      <td>{{ r.responsable }}</td>
+      <td>{{ r.fecha_carga }}</td>
     </tr>
     {% endfor %}
   </tbody>
@@ -86,6 +106,10 @@ function handleFiles(files) {
         setTimeout(() => location.reload(), 800);
       } else {
         out.innerHTML = `Error: ${data.error || 'Error desconocido'}`;
+        // Si es error de carga duplicada, redirigir a qnaproceso
+        if (data.redirect === 'qnaproceso') {
+          setTimeout(() => window.location.href = '{% url 'qnaproceso' %}', 2000);
+        }
       }
     })
     .catch(err => {

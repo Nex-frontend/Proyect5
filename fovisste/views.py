@@ -17,6 +17,14 @@ from .models import Record, Activity
 UPLOADER_GROUP = 'uploader'
 VIEWER_GROUP = 'viewer'
 
+def has_existing_load(user, qna_ini, lote_anterior):
+    """Verifica si ya existe una carga para esta combinación de usuario, quincena y lote"""
+    return Record.objects.filter(
+        responsable=user,
+        qna_ini=qna_ini,
+        lote_anterior=lote_anterior
+    ).exists()
+
 def ensure_roles(): # Crear roles si no existen
     Group.objects.get_or_create(name=UPLOADER_GROUP)
     Group.objects.get_or_create(name=VIEWER_GROUP)
@@ -45,26 +53,44 @@ def signup_view(request: HttpRequest) -> HttpResponse: # Registro de usuario
     else:
         form = SignUpForm()
     return render(request, 'signup.html', {'form': form})
-
 @login_required # Panel principal
 def dashboard_view(request: HttpRequest) -> HttpResponse:
     return render(request, 'dashboard.html')
 
 @login_required # Carga de archivos
+@permission_required('fovisste.add_record', raise_exception=True)
 def carga_view(request: HttpRequest) -> HttpResponse:
     # Requiere que se haya capturado Quincena Proceso y Lote
     if not (request.session.get('qna_ini') and request.session.get('lote_anterior')):
         messages.error(request, 'Debes capturar "Quincena Proceso" y "Lote" antes de realizar la carga.')
         return redirect('qnaproceso')
+
+    # Verificar si ya existe una carga para esta combinación
+    qna_ini = request.session.get('qna_ini')
+    lote_anterior = request.session.get('lote_anterior')
+    existing_load = has_existing_load(request.user, qna_ini, lote_anterior)
+
     # Renderiza página con drag & drop y tabla CRUD
-    records = Record.objects.all()[:200]
-    return render(request, 'carga.html', { 'records': records })
+    records = Record.objects.filter(
+        responsable=request.user,
+        qna_ini=qna_ini,
+        lote_anterior=lote_anterior
+    ).order_by('-fecha_carga')[:200] if existing_load else Record.objects.none()
+
+    context = {
+        'records': records,
+        'existing_load': existing_load,
+        'qna_ini': qna_ini,
+        'lote_anterior': lote_anterior
+    }
+    return render(request, 'carga.html', context)
 
 @login_required # Consulta de archivos
 @permission_required('fovisste.view_record', raise_exception=True)
 def consulta_view(request: HttpRequest) -> HttpResponse:
     q = request.GET.get('q', '').strip()
-    results = []
+    results = []  # Inicializar results como lista vacía
+
     if q:
         results = Record.objects.filter(
             Q(rfc__icontains=q) |
@@ -133,6 +159,16 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
         return JsonResponse({
             'ok': False,
             'error': 'Debes capturar "Quincena Proceso" y "Lote" antes de realizar la carga.'
+        }, status=400)
+
+    # Verificar si ya existe una carga para esta combinación
+    qna_ini = request.session.get('qna_ini')
+    lote_anterior = request.session.get('lote_anterior')
+    if has_existing_load(request.user, qna_ini, lote_anterior):
+        return JsonResponse({
+            'ok': False,
+            'error': 'Ya existe una carga para esta combinación de Quincena y Lote. Debes reiniciar el proceso en la página de Quincena Proceso.',
+            'redirect': 'qnaproceso'
         }, status=400)
 
     files = request.FILES.getlist('files')
@@ -205,6 +241,7 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
                         # Sobrescribir con sesión si está disponible
                         lote_anterior=(request.session.get('lote_anterior') or data['lote_anterior'][:6] or None),
                         qna_ini=(request.session.get('qna_ini') or data['qna_ini'][:4] or None),
+                        responsable=request.user, # Usuario que realiza la carga
                     )
                     batch.append(rec)
 
@@ -215,5 +252,10 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
             add_activity(request.user, 'carga', f'{f.name}: creados {len(batch)} registros')
         except Exception as e:
             errors.append({'file': f.name, 'error': str(e)})
+
+    # Limpiar sesión después de carga exitosa para forzar nuevo proceso
+    if total_created > 0:
+        request.session.pop('qna_ini', None)
+        request.session.pop('lote_anterior', None)
 
     return JsonResponse({'ok': True, 'created': total_created, 'errors': errors})

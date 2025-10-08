@@ -1,10 +1,14 @@
 from django.contrib import admin
 from .models import Record, Activity
 
+
+#aqui se configura el registro de las tablas del log de Django
+# (Record) y (Activity)
+
 # Configuración de la aplicación
 @admin.register(Record)
 class RecordAdmin(admin.ModelAdmin):
-    list_display = ("rfc", "nombre", "cadena1", "tipo", "impor", "cpto", "lote_actual", "qna", "ptje", "creado_en")
+    list_display = ("rfc", "nombre", "cadena1", "tipo", "impor", "cpto", "lote_actual", "qna", "ptje", "responsable", "fecha_carga")
     search_fields = ("rfc", "nombre", "cadena1", "qna", "observacio", "lote_anterior", "qna_ini")
 
 

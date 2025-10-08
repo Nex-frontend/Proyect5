@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 
 
 class Record(models.Model):
-    # Campos fixed-width (todos VARCHAR en MySQL según requerimiento)
+    # Campos de auditoría - nuevos campos agregados para rastreo
     # Para facilitar migraciones y cargas iniciales, permitimos null/blank en todos.
     rfc = models.CharField(max_length=13, db_index=True, blank=True, null=True, default='')
     nombre = models.CharField(max_length=30, db_index=True, blank=True, null=True, default='')
@@ -16,12 +16,13 @@ class Record(models.Model):
     ptje = models.CharField(max_length=2, blank=True, null=True, default='')
     observacio = models.CharField(max_length=47, blank=True, null=True, default='')
     lote_anterior = models.CharField(max_length=5, blank=True, null=True, default='')
+    responsable = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Responsable de Carga') # Usuario que cargó el archivo
     qna_ini = models.CharField(max_length=6, blank=True, null=True, default='')
-
-    creado_en = models.DateTimeField(auto_now_add=True) # Fecha de creación
+    fecha_carga = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de Carga')
+    # creado_en = models.DateTimeField(auto_now_add=True) # Fecha de creación - REMOVIDO, se usa fecha_carga
 
     class Meta: # Meta datos
-        ordering = ['-creado_en']
+        ordering = ['-fecha_carga']
 
     def __str__(self): # Representación en str
         return f"{self.rfc} - {self.nombre}"
