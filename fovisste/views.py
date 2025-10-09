@@ -138,9 +138,32 @@ def qnaproceso_view(request: HttpRequest) -> HttpResponse:
         'qna_ini': request.session.get('qna_ini', ''),
         'lote_anterior': request.session.get('lote_anterior', ''),
     }
-    return render(request, 'qnaproceso.html', ctx)
+@login_required
+@permission_required('fovisste.view_record', raise_exception=True)
+def resultados_view(request: HttpRequest) -> HttpResponse:
+    """Vista para mostrar resultados de cargas recientes."""
+    # Obtener parámetros de consulta opcionales
+    qna_filter = request.GET.get('qna', '').strip()
+    lote_filter = request.GET.get('lote', '').strip()
 
-@login_required # Carga de archivos
+    # Construir consulta base
+    records = Record.objects.filter(responsable=request.user).order_by('-fecha_carga')
+
+    # Aplicar filtros si se proporcionan
+    if qna_filter:
+        records = records.filter(qna_ini__icontains=qna_filter)
+    if lote_filter:
+        records = records.filter(lote_anterior__icontains=lote_filter)
+
+    # Limitar a los últimos 200 para evitar sobrecarga
+    records = records[:200]
+
+    context = {
+        'records': records,
+        'qna_filter': qna_filter,
+        'lote_filter': lote_filter,
+    }
+    return render(request, 'resultados.html', context)
 @permission_required('fovisste.add_record', raise_exception=True)
 def api_upload_view(request: HttpRequest) -> JsonResponse:
     """Carga de archivos de ancho fijo y grabado directo en MySQL vía ORM.

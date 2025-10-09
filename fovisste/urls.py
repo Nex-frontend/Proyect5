@@ -18,6 +18,7 @@ urlpatterns = [
     path('foviste/carga/', views.carga_view, name='carga'),
     path('foviste/consulta/', views.consulta_view, name='consulta'),
     path('foviste/qnaproceso/', views.qnaproceso_view, name='qnaproceso'),
+    path('foviste/resultados/', views.resultados_view, name='resultados'),
 
     # API
     path('api/upload/', views.api_upload_view, name='api_upload'),
