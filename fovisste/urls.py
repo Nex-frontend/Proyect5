@@ -21,5 +21,7 @@ urlpatterns = [
     path('foviste/resultados/', views.resultados_view, name='resultados'),
 
     # API
+    path('api/preview/', views.preview_upload_view, name='api_preview'),
+    path('api/update_lote/', views.update_lote_view, name='api_update_lote'),
     path('api/upload/', views.api_upload_view, name='api_upload'),
 ]

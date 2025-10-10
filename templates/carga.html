@@ -2,93 +2,104 @@
 {% block content %}
 <h2>Página de carga</h2>
 
-{% if existing_load %}
-<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
-    <strong>⚠️ Carga Existente:</strong> Ya existe una carga para la Quincena <strong>{{ qna_ini }}</strong> y Lote <strong>{{ lote_anterior }}</strong>.
-    <br>Para realizar una nueva carga debes <a href="{% url 'qnaproceso' %}">reiniciar el proceso</a>.
-</div>
-{% else %}
 <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
     <strong>📋 Configuración Actual:</strong> Quincena <strong>{{ qna_ini }}</strong> | Lote <strong>{{ lote_anterior }}</strong>
 </div>
-{% endif %}
 
-<div id="drop-area" class="drag-area" {% if existing_load %}style="opacity: 0.5; pointer-events: none;"{% endif %}> {# Área de arrastrar y soltar archivos #}
-  {% if existing_load %}
-    Área deshabilitada - Ya existe una carga para esta configuración
-  {% else %}
+<div id="drop-area" class="drag-area">
     Arrastra y suelta archivos aquí o haz clic para seleccionar.
-    <input id="fileElem" type="file" multiple style="display:none" /> {# Input oculto para seleccionar archivos #}
-  {% endif %}
+    <input id="fileElem" type="file" multiple style="display:none" />
 </div>
 
-<div id="upload-result" style="margin-top:1rem;"></div> {# Resultado de la carga #}
+<div id="upload-result" style="margin-top:1rem;"></div>
 
-<h3>Registros cargados</h3> {# Título de la sección de registros cargados #}
-<table role="grid"> {# Tabla de registros cargados #}
-  <thead> {# Encabezado de la tabla #}
-    <tr> {# Fila de encabezado #}
-      <th>RFC</th>
-      <th>Nombre</th>
-      <th>Cadena1</th>
-      <th>Tipo</th>
-      <th>Importe</th>
-      <th>CPTO</th>
-      <th>Lote act.</th>
-      <th>QNA</th>
-      <th>Ptje</th>
-      <th>Observación</th>
-      <th>Lote ant.</th>
-      <th>QNA ini</th>
-      <th>Responsable</th>
-      <th>Fecha de Carga</th>
-    </tr>
-  </thead>
-  <tbody id="records-body"> {# Cuerpo de la tabla #}
-    {% for r in records %} {# Recorrido de los registros #}
-    <tr> {# Fila de la tabla #}
-      <td>{{ r.rfc }}</td>
-      <td>{{ r.nombre }}</td>
-      <td>{{ r.cadena1 }}</td>
-      <td>{{ r.tipo }}</td>
-      <td>{{ r.impor }}</td>
-      <td>{{ r.cpto }}</td>
-      <td>{{ r.lote_actual }}</td>
-      <td>{{ r.qna }}</td>
-      <td>{{ r.ptje }}</td>
-      <td>{{ r.observacio }}</td>
-      <td>{{ r.lote_anterior }}</td>
-      <td>{{ r.qna_ini }}</td>
-      <td>{{ r.responsable }}</td>
-      <td>{{ r.fecha_carga }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-  <caption>Total mostrados: {{ records|length }}</caption> {# Pie de la tabla #}
-  </table>
+{% if preview_records %}
+<h3>Registros en Preview</h3>
+<div style="margin-bottom: 20px;">
+    <strong>Resumen:</strong> Tipo A: {{ tipo_a_count }} | Tipo B: {{ tipo_b_count }} | Total: {{ total_count }}
+</div>
+<form id="validation-form">
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>RFC</th>
+                <th>Nombre</th>
+                <th>Cadena1</th>
+                <th>Tipo</th>
+                <th>Importe</th>
+                <th>CPTO</th>
+                <th>Lote act.</th>
+                <th>QNA</th>
+                <th>Ptje</th>
+                <th>Observación</th>
+                <th>Lote ant.</th>
+                <th>QNA ini</th>
+            </tr>
+        </thead>
+        <tbody id="records-body">
+            {% for r in preview_records %}
+            <tr>
+                <td><input type="text" name="rfc" value="{{ r.rfc }}" maxlength="13"></td>
+                <td><input type="text" name="nombre" value="{{ r.nombre }}" maxlength="30"></td>
+                <td><input type="text" name="cadena1" value="{{ r.cadena1 }}" maxlength="37"></td>
+                <td><input type="text" name="tipo" value="{{ r.tipo }}" maxlength="1"></td>
+                <td><input type="text" name="impor" value="{{ r.impor }}" maxlength="8"></td>
+                <td><input type="text" name="cpto" value="{{ r.cpto }}" maxlength="2"></td>
+                <td><input type="text" name="lote_actual" value="{{ r.lote_actual }}" maxlength="1"></td>
+                <td><input type="text" name="qna" value="{{ r.qna }}" maxlength="6"></td>
+                <td><input type="text" name="ptje" value="{{ r.ptje }}" maxlength="2"></td>
+                <td><input type="text" name="observacio" value="{{ r.observacio }}" maxlength="47"></td>
+                <td><input type="text" name="lote_anterior" value="{{ r.lote_anterior }}" maxlength="5"></td>
+                <td><input type="text" name="qna_ini" value="{{ r.qna_ini }}" maxlength="6"></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="margin-top: 20px;">
+        <label><strong>¿Los registros son correctos? Favor de validarlo:</strong></label><br>
+        <button type="button" id="confirm-btn" class="btn-entrar">Registros correctos</button>
+        <button type="button" id="reject-btn" class="btn-entrar">Registros incorrectos</button>
+    </div>
+    <!-- Modal para opción de carga múltiple -->
+    <div id="multiple-load-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 8px; width: 400px;">
+            <h3>¿Deseas cargar otro archivo con la misma Quincena Proceso?</h3>
+            <button type="button" id="yes-multiple-btn" class="btn-entrar">Sí</button>
+            <button type="button" id="no-multiple-btn" class="btn-entrar">No</button>
+            <!-- Formulario para nuevo lote (oculto inicialmente) -->
+            <div id="new-lote-form" style="display: none; margin-top: 20px;">
+                <label for="new-lote">Ingrese nuevo Lote (4 dígitos):</label>
+                <input type="text" id="new-lote" name="new-lote" pattern="\d{4}" maxlength="4" required>
+                <button type="button" id="submit-new-lote" class="btn-entrar">Actualizar Lote</button>
+            </div>
+    </div>
+</form>
+{% endif %}
 
 <script>
-const dropArea = document.getElementById('drop-area');
+console.log('DEBUG: Preview records en template:', {{ preview_records|length }});  // Depuración temporal
+console.log('DEBUG: Tipo A:', {{ tipo_a_count }});  // Depuración temporal
+console.log('DEBUG: Tipo B:', {{ tipo_b_count }});  // Depuración temporal
+console.log('DEBUG: Total:', {{ total_count }});  // Depuración temporal
 const fileElem = document.getElementById('fileElem');
 
 ['dragenter','dragover','dragleave','drop'].forEach(eventName => {
   dropArea.addEventListener(eventName, preventDefaults, false);
 });
-
-function preventDefaults (e) { e.preventDefault(); e.stopPropagation(); } // Previene los eventos por defecto
+function preventDefaults (e) { e.preventDefault(); e.stopPropagation(); }
 
 dropArea.addEventListener('drop', handleDrop, false);
 dropArea.addEventListener('click', () => fileElem.click());
 fileElem.addEventListener('change', (e) => handleFiles(e.target.files));
 
-function handleDrop(e) { handleFiles(e.dataTransfer.files); } // Maneja el evento de soltar archivos
+function handleDrop(e) { handleFiles(e.dataTransfer.files); }
 
 function handleFiles(files) {
   const formData = new FormData();
   for (let i=0; i<files.length; i++) formData.append('files', files[i]);
   const out = document.getElementById('upload-result');
-  out.innerHTML = 'Subiendo...';
-  fetch('{% url 'api_upload' %}', {
+  out.innerHTML = 'Procesando preview...';
+  fetch('{% url 'api_preview' %}', {
       method: 'POST',
       headers: { 'X-CSRFToken': getCookie('csrftoken') },
       body: formData
@@ -101,24 +112,71 @@ function handleFiles(files) {
     })
     .then(data => {
       if (data.ok) {
-        out.innerHTML = `Cargados: ${data.created}.` + (data.errors && data.errors.length ? ` Errores: ${data.errors.length}` : '');
-        // Refresca la tabla para ver nuevos registros
+        out.innerHTML = `Preview cargado: ${data.preview_count} registros.` + (data.errors.length ? ` Errores: ${data.errors.length}` : '');
         setTimeout(() => location.reload(), 800);
       } else {
-        out.innerHTML = `Error: ${data.error || 'Error desconocido'}`;
-        // Si es error de carga duplicada, redirigir a qnaproceso
-        if (data.redirect === 'qnaproceso') {
-          setTimeout(() => window.location.href = '{% url 'qnaproceso' %}', 2000);
-        }
+        out.innerHTML = `Error en preview: ${data.error}`;
       }
     })
     .catch(err => {
-      const msg = err && err.error ? err.error : (typeof err === 'string' ? err : 'Error desconocido (¿permisos? ¿CSRF? ¿Conexión a BD?)');
-      out.innerHTML = `Falló la carga: ${msg}`;
+      out.innerHTML = `Falló el preview: ${err.error || err}`;
     });
 }
 
-function getCookie(name) { // Obtiene el valor de una cookie
+// Botones de validación
+document.getElementById('confirm-btn')?.addEventListener('click', () => {
+  console.log('DEBUG: Botón Registros correctos clicado');  // Depuración
+  // Mostrar modal para opción de carga múltiple
+  document.getElementById('multiple-load-modal').style.display = 'block';
+  console.log('DEBUG: Modal mostrado');  // Depuración
+});
+
+document.getElementById('reject-btn')?.addEventListener('click', () => {
+  // Limpiar sesiones y volver a qnaproceso
+  fetch('{% url 'api_upload' %}', { method: 'POST', body: new FormData() })
+    .then(() => window.location.href = '{% url 'qnaproceso' %}');
+});
+
+document.getElementById('yes-multiple-btn')?.addEventListener('click', () => {
+  console.log('DEBUG: Botón Sí clicado');  // Depuración
+  // Mostrar formulario para nuevo lote
+  document.getElementById('new-lote-form').style.display = 'block';
+});
+
+document.getElementById('no-multiple-btn')?.addEventListener('click', () => {
+  console.log('DEBUG: Botón No clicado');  // Depuración
+  // Redirigir a qnaproceso sin cargar más
+  window.location.href = '{% url 'qnaproceso' %}';
+});
+
+document.getElementById('submit-new-lote')?.addEventListener('click', () => {
+  console.log('DEBUG: Botón Actualizar Lote clicado');  // Depuración
+  const newLote = document.getElementById('new-lote').value;
+  console.log('DEBUG: Nuevo lote ingresado:', newLote);  // Depuración
+  if (newLote && newLote.length === 4) {
+    // Actualizar lote en sesión
+    fetch('{% url 'api_update_lote' %}', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken') },
+      body: new URLSearchParams({ nuevo_lote: newLote })
+    })
+    .then(r => r.json())
+    .then(data => {
+      console.log('DEBUG: Respuesta de api_update_lote:', data);  // Depuración
+      if (data.ok) {
+        // Ocultar modal y recargar página para proceder al preview
+        document.getElementById('multiple-load-modal').style.display = 'none';
+        location.reload();
+      } else {
+        alert(data.error);
+      }
+    });
+  } else {
+    alert('Ingrese un lote válido de 4 dígitos.');
+  }
+});
+
+function getCookie(name) {
   let cookieValue = null;
   if (document.cookie && document.cookie !== '') {
       const cookies = document.cookie.split(';');
