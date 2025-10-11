@@ -32,8 +32,8 @@
                 <th>QNA</th>
                 <th>Ptje</th>
                 <th>Observación</th>
-                <th>Lote ant.</th>
-                <th>QNA ini</th>
+                <th>Lote</th>
+                <th>QNA Proceso</th>
             </tr>
         </thead>
         <tbody id="records-body">
@@ -49,7 +49,7 @@
                 <td><input type="text" name="qna" value="{{ r.qna }}" maxlength="6"></td>
                 <td><input type="text" name="ptje" value="{{ r.ptje }}" maxlength="2"></td>
                 <td><input type="text" name="observacio" value="{{ r.observacio }}" maxlength="47"></td>
-                <td><input type="text" name="lote_anterior" value="{{ r.lote_anterior }}" maxlength="5"></td>
+                <td><input type="text" name="lote_anterior" value="{{ r.lote_anterior }}" maxlength="4"></td>
                 <td><input type="text" name="qna_ini" value="{{ r.qna_ini }}" maxlength="6"></td>
             </tr>
             {% endfor %}
@@ -71,124 +71,146 @@
                 <label for="new-lote">Ingrese nuevo Lote (4 dígitos):</label>
                 <input type="text" id="new-lote" name="new-lote" pattern="\d{4}" maxlength="4" required>
                 <button type="button" id="submit-new-lote" class="btn-entrar">Actualizar Lote</button>
-            </div>
     </div>
 </form>
 {% endif %}
 
 <script>
-console.log('DEBUG: Preview records en template:', {{ preview_records|length }});  // Depuración temporal
-console.log('DEBUG: Tipo A:', {{ tipo_a_count }});  // Depuración temporal
-console.log('DEBUG: Tipo B:', {{ tipo_b_count }});  // Depuración temporal
-console.log('DEBUG: Total:', {{ total_count }});  // Depuración temporal
-const fileElem = document.getElementById('fileElem');
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    console.log('DOM cargado, inicializando drag & drop...');
 
-['dragenter','dragover','dragleave','drop'].forEach(eventName => {
-  dropArea.addEventListener(eventName, preventDefaults, false);
-});
-function preventDefaults (e) { e.preventDefault(); e.stopPropagation(); }
+    const dropArea = document.getElementById('drop-area');
+    const fileElem = document.getElementById('fileElem');
 
-dropArea.addEventListener('drop', handleDrop, false);
-dropArea.addEventListener('click', () => fileElem.click());
-fileElem.addEventListener('change', (e) => handleFiles(e.target.files));
+    if (!dropArea || !fileElem) {
+      console.error('Error: Elementos drop-area o fileElem no encontrados en el DOM.');
+      return;
+    }
 
-function handleDrop(e) { handleFiles(e.dataTransfer.files); }
-
-function handleFiles(files) {
-  const formData = new FormData();
-  for (let i=0; i<files.length; i++) formData.append('files', files[i]);
-  const out = document.getElementById('upload-result');
-  out.innerHTML = 'Procesando preview...';
-  fetch('{% url 'api_preview' %}', {
-      method: 'POST',
-      headers: { 'X-CSRFToken': getCookie('csrftoken') },
-      body: formData
-    })
-    .then(async r => {
-      let data;
-      try { data = await r.json(); } catch(e) { data = { ok:false, error: 'Respuesta no válida del servidor' }; }
-      if (!r.ok) throw data;
-      return data;
-    })
-    .then(data => {
-      if (data.ok) {
-        out.innerHTML = `Preview cargado: ${data.preview_count} registros.` + (data.errors.length ? ` Errores: ${data.errors.length}` : '');
-        setTimeout(() => location.reload(), 800);
-      } else {
-        out.innerHTML = `Error en preview: ${data.error}`;
-      }
-    })
-    .catch(err => {
-      out.innerHTML = `Falló el preview: ${err.error || err}`;
+    ['dragenter','dragover','dragleave','drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, preventDefaults, false);
     });
-}
 
-// Botones de validación
-document.getElementById('confirm-btn')?.addEventListener('click', () => {
-  console.log('DEBUG: Botón Registros correctos clicado');  // Depuración
-  // Mostrar modal para opción de carga múltiple
-  document.getElementById('multiple-load-modal').style.display = 'block';
-  console.log('DEBUG: Modal mostrado');  // Depuración
-});
+    function preventDefaults (e) { 
+      e.preventDefault(); 
+      e.stopPropagation(); 
+    }
 
-document.getElementById('reject-btn')?.addEventListener('click', () => {
-  // Limpiar sesiones y volver a qnaproceso
-  fetch('{% url 'api_upload' %}', { method: 'POST', body: new FormData() })
-    .then(() => window.location.href = '{% url 'qnaproceso' %}');
-});
+    dropArea.addEventListener('drop', handleDrop, false);
+    dropArea.addEventListener('click', () => fileElem.click());
+    fileElem.addEventListener('change', (e) => handleFiles(e.target.files));
 
-document.getElementById('yes-multiple-btn')?.addEventListener('click', () => {
-  console.log('DEBUG: Botón Sí clicado');  // Depuración
-  // Mostrar formulario para nuevo lote
-  document.getElementById('new-lote-form').style.display = 'block';
-});
+    function handleDrop(e) { 
+      handleFiles(e.dataTransfer.files); 
+    }
 
-document.getElementById('no-multiple-btn')?.addEventListener('click', () => {
-  console.log('DEBUG: Botón No clicado');  // Depuración
-  // Redirigir a qnaproceso sin cargar más
-  window.location.href = '{% url 'qnaproceso' %}';
-});
+    function handleFiles(files) {
+      const formData = new FormData();
+      for (let i=0; i<files.length; i++) formData.append('files', files[i]);
+      const out = document.getElementById('upload-result');
+      if (out) out.innerHTML = 'Procesando preview...';
+      fetch('{% url 'api_preview' %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        body: formData
+      })
+      .then(async r => {
+        let data;
+        try { data = await r.json(); } catch(e) { data = { ok:false, error: 'Respuesta no válida del servidor' }; }
+        if (!r.ok) throw data;
+        return data;
+      })
+      .then(data => {
+        if (data.ok) {
+          out.innerHTML = `Preview cargado: ${data.preview_count} registros.` + (data.errors.length ? ` Errores: ${data.errors.length}` : '');
+          setTimeout(() => location.reload(), 800);
+        } else {
+          out.innerHTML = `Error en preview: ${data.error}`;
+        }
+      })
+      .catch(err => {
+        out.innerHTML = `Falló el preview: ${err.error || err}`;
+      });
+    }
 
-document.getElementById('submit-new-lote')?.addEventListener('click', () => {
-  console.log('DEBUG: Botón Actualizar Lote clicado');  // Depuración
-  const newLote = document.getElementById('new-lote').value;
-  console.log('DEBUG: Nuevo lote ingresado:', newLote);  // Depuración
-  if (newLote && newLote.length === 4) {
-    // Actualizar lote en sesión
-    fetch('{% url 'api_update_lote' %}', {
-      method: 'POST',
-      headers: { 'X-CSRFToken': getCookie('csrftoken') },
-      body: new URLSearchParams({ nuevo_lote: newLote })
-    })
-    .then(r => r.json())
-    .then(data => {
-      console.log('DEBUG: Respuesta de api_update_lote:', data);  // Depuración
-      if (data.ok) {
-        // Ocultar modal y recargar página para proceder al preview
-        document.getElementById('multiple-load-modal').style.display = 'none';
-        location.reload();
-      } else {
-        alert(data.error);
-      }
-    });
-  } else {
-    alert('Ingrese un lote válido de 4 dígitos.');
-  }
-});
+    // Eventos de botones con verificaciones
+    const confirmBtn = document.getElementById('confirm-btn');
+    const rejectBtn = document.getElementById('reject-btn');
+    const yesBtn = document.getElementById('yes-multiple-btn');
+    const noBtn = document.getElementById('no-multiple-btn');
+    const submitLoteBtn = document.getElementById('submit-new-lote');
 
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => {
+        console.log('Botón Registros correctos clicado');
+        const modal = document.getElementById('multiple-load-modal');
+        if (modal) modal.style.display = 'block';
+      });
+    }
+
+    if (rejectBtn) {
+      rejectBtn.addEventListener('click', () => {
+        fetch('{% url 'api_upload' %}', { method: 'POST', body: new FormData() })
+          .then(() => window.location.href = '{% url 'qnaproceso' %}');
+      });
+    }
+
+    if (yesBtn) {
+      yesBtn.addEventListener('click', () => {
+        const form = document.getElementById('new-lote-form');
+        if (form) form.style.display = 'block';
+      });
+    }
+
+    if (noBtn) {
+      noBtn.addEventListener('click', () => {
+        window.location.href = '{% url 'qnaproceso' %}';
+      });
+    }
+
+    if (submitLoteBtn) {
+      submitLoteBtn.addEventListener('click', () => {
+        const newLote = document.getElementById('new-lote')?.value;
+        if (newLote && newLote.length === 4) {
+          fetch('{% url 'api_update_lote' %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            body: new URLSearchParams({ nuevo_lote: newLote })
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (data.ok) {
+              const modal = document.getElementById('multiple-load-modal');
+              if (modal) modal.style.display = 'none';
+              location.reload();
+            } else {
+              alert(data.error);
+            }
+          });
+        } else {
+          alert('Ingrese un lote válido de 4 dígitos.');
+        }
+      });
+    }
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
           const cookie = cookies[i].trim();
           if (cookie.substring(0, name.length + 1) === (name + '=')) {
-              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-              break;
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
           }
+        }
       }
+      return cookieValue;
+    }
+  } catch (error) {
+    console.error('Error al inicializar drag & drop:', error);
   }
-  return cookieValue;
-}
+});
 </script>
 {% endblock %}
