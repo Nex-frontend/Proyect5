@@ -1,0 +1,83 @@
+name: Django tests
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        db: [mysql, postgres]
+    services: {}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install system deps for DB drivers
+        run: |
+          sudo apt-get update
+          if [ "${{ matrix.db }}" = "mysql" ]; then
+            sudo apt-get install -y default-libmysqlclient-dev build-essential
+          else
+            sudo apt-get install -y libpq-dev
+          fi
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Configure DB env
+        run: |
+          echo "Using DB: ${{ matrix.db }}"
+        env:
+          DB: ${{ matrix.db }}
+
+      - name: Start DB service (MySQL/Postgres)
+        run: |
+          if [ "${{ matrix.db }}" = "mysql" ]; then
+            sudo service mysql start || true
+            # Configure MySQL root password and create DB
+            mysql -e "CREATE DATABASE IF NOT EXISTS desc64;" || true
+          else
+            sudo service postgresql start || true
+            sudo -u postgres psql -c "CREATE DATABASE desc64;" || true
+          fi
+
+      - name: Run migrations
+        env:
+          DJANGO_SETTINGS_MODULE: Prestaciones.settings
+          DB_ENGINE: ${{ matrix.db }}
+          # MySQL envs (default values if not provided)
+          MYSQL_DATABASE: desc64
+          MYSQL_USER: root
+          MYSQL_PASSWORD: ''
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
+          # Postgres envs
+          POSTGRES_DB: desc64
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ''
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: 5432
+        run: |
+          python manage.py migrate --noinput
+
+      - name: Run tests (pytest if available, else manage.py test)
+        env:
+          DJANGO_SETTINGS_MODULE: Prestaciones.settings
+          DB_ENGINE: ${{ matrix.db }}
+        run: |
+          set -e
+          if python -c "import pytest" 2>/dev/null; then
+            pytest -q
+          else
+            python manage.py test
+          fi

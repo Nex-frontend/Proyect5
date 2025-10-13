@@ -52,21 +52,35 @@ TEMPLATES = [ # mis plantillas
 WSGI_APPLICATION = 'Prestaciones.wsgi.application'
 ASGI_APPLICATION = 'Prestaciones.asgi.application'
 
-# Database - MySQL
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('MYSQL_DATABASE', 'desc64'),
-        'USER': os.getenv('MYSQL_USER', 'root'),
-        'PASSWORD': os.getenv('MYSQL_PASSWORD', 'Host456my.sql'),
-        'HOST': os.getenv('MYSQL_HOST', 'localhost'),
-        'PORT': int(os.getenv('MYSQL_PORT', '3306')),
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_ALL_TABLES'",
+# Database configuration (support MySQL and Postgres via env DB_ENGINE)
+DB_ENGINE = os.getenv('DB_ENGINE', 'mysql').lower()
+
+if DB_ENGINE == 'postgresql' or DB_ENGINE == 'postgres':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DB', 'desc64'),
+            'USER': os.getenv('POSTGRES_USER', 'postgres'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'postgres'),
+            'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+            'PORT': int(os.getenv('POSTGRES_PORT', '5432')),
         }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('MYSQL_DATABASE', 'desc64'),
+            'USER': os.getenv('MYSQL_USER', 'root'),
+            'PASSWORD': os.getenv('MYSQL_PASSWORD', 'Host456my.sql'),
+            'HOST': os.getenv('MYSQL_HOST', 'localhost'),
+            'PORT': int(os.getenv('MYSQL_PORT', '3306')),
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_ALL_TABLES'",
+            }
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
