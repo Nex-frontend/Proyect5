@@ -1,4 +1,5 @@
 import io
+import re
 
 from django.contrib import messages
 from django.contrib.auth import login, logout
@@ -74,14 +75,20 @@ def carga_view(request: HttpRequest) -> HttpResponse:
         return redirect('qnaproceso')
 
     # Obtener datos de sesión para preview si existen
-    preview_records = request.session.get('preview_records', [])
-    print(f"DEBUG: Preview records recuperados de sesión: {len(preview_records)} registros")  # Depuración
+    preview_records = request.session.get('preview_records')
+    # Normalizar: asegurarse de que sea una lista
+    if not isinstance(preview_records, list):
+        preview_records = []
 
-    # Calcular conteos para preview
-    tipo_a_count = sum(1 for r in preview_records if r.get('tipo') == 'A')
-    tipo_b_count = sum(1 for r in preview_records if r.get('tipo') == 'B')
-    total_count = len(preview_records)
-    print(f"DEBUG: Conteos calculados - Tipo A: {tipo_a_count}, Tipo B: {tipo_b_count}, Total: {total_count}")  # Depuración
+    # Sólo calcular conteos si hay registros en preview
+    if preview_records:
+        tipo_a_count = sum(1 for r in preview_records if (r.get('tipo') if isinstance(r, dict) else None) == 'A')
+        tipo_b_count = sum(1 for r in preview_records if (r.get('tipo') if isinstance(r, dict) else None) == 'B')
+        total_count = len(preview_records)
+    else:
+        tipo_a_count = 0
+        tipo_b_count = 0
+        total_count = 0
 
     context = {
         'qna_ini': qna_ini,
@@ -257,6 +264,11 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
 
     # Código original para carga directa
 
+    # Inicializar variables para el procesamiento
+    files = request.FILES.getlist('files')
+    errors = []
+    total_created = 0
+
     # Definición de cortes fixed-width (inicio, fin)
     FIELDS = [
         ("rfc", 0, 13),
@@ -402,10 +414,27 @@ def preview_upload_view(request: HttpRequest) -> JsonResponse:
         except Exception as e:
             errors.append({'file': f.name, 'error': str(e)})
 
+    # Si no se obtuvieron registros, no guardar clave en sesión y devolver mensaje
+    if not preview_records:
+        # Eliminar posibles keys previas para evitar mostrar previews antiguos
+        request.session.pop('preview_records', None)
+        request.session['preview_errors'] = errors
+        return JsonResponse({'ok': True, 'preview_count': 0, 'errors': errors})
+
     # Guardar en sesión para mostrar en carga.html
     request.session['preview_records'] = preview_records
     request.session['preview_errors'] = errors
-    print(f"DEBUG: Preview records guardados en sesión: {len(preview_records)} registros")  # Depuración
-    print(f"DEBUG: Errores en preview: {errors}")  # Depuración
 
     return JsonResponse({'ok': True, 'preview_count': len(preview_records), 'errors': errors})
+
+
+@login_required
+@permission_required('fovisste.add_record', raise_exception=True)
+def clear_preview_view(request: HttpRequest) -> JsonResponse:
+    """Elimina keys de preview de la sesión para que la página de carga no muestre nada."""
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
+
+    request.session.pop('preview_records', None)
+    request.session.pop('preview_errors', None)
+    return JsonResponse({'ok': True})

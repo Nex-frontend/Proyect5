@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
       for (let i=0; i<files.length; i++) formData.append('files', files[i]);
       const out = document.getElementById('upload-result');
       if (out) out.innerHTML = 'Procesando preview...';
-      fetch('{% url 'api_preview' %}', {
+  fetch("{% url 'api_preview' %}", {
         method: 'POST',
         headers: { 'X-CSRFToken': getCookie('csrftoken') },
         body: formData
@@ -150,8 +150,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (rejectBtn) {
       rejectBtn.addEventListener('click', () => {
-        fetch('{% url 'api_upload' %}', { method: 'POST', body: new FormData() })
-          .then(() => window.location.href = '{% url 'qnaproceso' %}');
+          // Llamar al endpoint para limpiar el preview en sesión y recargar la página
+    fetch("{% url 'api_clear_preview' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+          })
+          .then(r => r.json())
+          .then(data => {
+            if (data.ok) location.reload();
+            else alert('No se pudo limpiar el preview: ' + (data.error || 'error'));
+          })
+          .catch(err => alert('Error al limpiar preview: ' + err));
       });
     }
 
@@ -164,7 +173,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (noBtn) {
       noBtn.addEventListener('click', () => {
-        window.location.href = '{% url 'qnaproceso' %}';
+          // El usuario confirma que no desea cargar más archivos: proceder a confirmar la carga
+          const out = document.getElementById('upload-result');
+          if (out) out.innerHTML = 'Confirmando carga...';
+          const payload = new FormData();
+          payload.append('confirm', '1');
+    fetch("{% url 'api_upload' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            body: payload
+          })
+          .then(async r => {
+            let data;
+            try { data = await r.json(); } catch(e) { data = { ok:false, error: 'Respuesta no válida' }; }
+            if (!r.ok) throw data;
+            return data;
+          })
+          .then(data => {
+            if (data.ok) {
+              window.location.href = "{% url 'resultados' %}";
+            } else {
+              if (out) out.innerHTML = 'Error al confirmar: ' + (data.error || JSON.stringify(data));
+            }
+          })
+          .catch(err => {
+            if (out) out.innerHTML = 'Error al confirmar: ' + (err.error || err);
+          });
       });
     }
 
@@ -172,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
       submitLoteBtn.addEventListener('click', () => {
         const newLote = document.getElementById('new-lote')?.value;
         if (newLote && newLote.length === 4) {
-          fetch('{% url 'api_update_lote' %}', {
+          fetch("{% url 'api_update_lote' %}", {
             method: 'POST',
             headers: { 'X-CSRFToken': getCookie('csrftoken') },
             body: new URLSearchParams({ nuevo_lote: newLote })
