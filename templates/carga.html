@@ -27,35 +27,34 @@
                 <th>Cadena1</th>
                 <th>Tipo</th>
                 <th>Importe</th>
-                <th>CPTO</th>
-                <th>Lote act.</th>
+                <th>Cpto</th>
+                <th>Lote Actual</th>
                 <th>QNA</th>
                 <th>Ptje</th>
                 <th>Observación</th>
-                <th>Lote</th>
-                <th>QNA Proceso</th>
+                <th>Lote Anterior</th>
+                <th>QNA Inicial</th>
             </tr>
         </thead>
         <tbody id="records-body">
             {% for r in preview_records %}
             <tr>
-                <td><input type="text" name="rfc" value="{{ r.rfc }}" maxlength="13"></td>
-                <td><input type="text" name="nombre" value="{{ r.nombre }}" maxlength="30"></td>
-                <td><input type="text" name="cadena1" value="{{ r.cadena1 }}" maxlength="37"></td>
-                <td><input type="text" name="tipo" value="{{ r.tipo }}" maxlength="1"></td>
-                <td><input type="text" name="impor" value="{{ r.impor }}" maxlength="8"></td>
-                <td><input type="text" name="cpto" value="{{ r.cpto }}" maxlength="2"></td>
-                <td><input type="text" name="lote_actual" value="{{ r.lote_actual }}" maxlength="1"></td>
-                <td><input type="text" name="qna" value="{{ r.qna }}" maxlength="6"></td>
-                <td><input type="text" name="ptje" value="{{ r.ptje }}" maxlength="2"></td>
-                <td><input type="text" name="observacio" value="{{ r.observacio }}" maxlength="47"></td>
-                <td><input type="text" name="lote_anterior" value="{{ r.lote_anterior }}" maxlength="4"></td>
-                <td><input type="text" name="qna_ini" value="{{ r.qna_ini }}" maxlength="6"></td>
+                <td><input type="text" name="rfc" value="{{ r.rfc|default:'' }}" maxlength="13" placeholder="RFC" title="RFC: {{ r.rfc|default:'N/A' }}"></td>
+                <td><input type="text" name="nombre" value="{{ r.nombre|default:'' }}" maxlength="30" placeholder="Nombre" title="Nombre: {{ r.nombre|default:'N/A' }}"></td>
+                <td><input type="text" name="cadena1" value="{{ r.cadena1|default:'' }}" maxlength="37" placeholder="Cadena1" title="Cadena1: {{ r.cadena1|default:'N/A' }}"></td>
+                <td><input type="text" name="tipo" value="{{ r.tipo|default:'' }}" maxlength="1" placeholder="Tipo" title="Tipo: {{ r.tipo|default:'N/A' }}"></td>
+                <td><input type="text" name="impor" value="{{ r.impor|default:'' }}" maxlength="8" placeholder="Importe" title="Importe: {{ r.impor|default:'N/A' }}"></td>
+                <td><input type="text" name="cpto" value="{{ r.cpto|default:'' }}" maxlength="2" placeholder="Cpto" title="Cpto: {{ r.cpto|default:'N/A' }}"></td>
+                <td><input type="text" name="lote_actual" value="{{ r.lote_actual|default:'' }}" maxlength="1" placeholder="Lote Actual" title="Lote Actual: {{ r.lote_actual|default:'N/A' }}"></td>
+                <td><input type="text" name="qna" value="{{ r.qna|default:'' }}" maxlength="6" placeholder="QNA" title="QNA: {{ r.qna|default:'N/A' }}"></td>
+                <td><input type="text" name="ptje" value="{{ r.ptje|default:'' }}" maxlength="2" placeholder="Ptje" title="Ptje: {{ r.ptje|default:'N/A' }}"></td>
+                <td><input type="text" name="observacio" value="{{ r.observacio|default:'' }}" maxlength="47" placeholder="Observación" title="Observación: {{ r.observacio|default:'N/A' }}"></td>
+                <td><input type="text" name="lote_anterior" value="{{ r.lote_anterior|default:'' }}" maxlength="5" placeholder="Lote Anterior" title="Lote Anterior: {{ r.lote_anterior|default:'N/A' }}"></td>
+                <td><input type="text" name="qna_ini" value="{{ r.qna_ini|default:'' }}" maxlength="6" placeholder="QNA Inicial" title="QNA Inicial: {{ r.qna_ini|default:'N/A' }}"></td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
-    <div style="margin-top: 20px;">
         <label><strong>¿Los registros son correctos? Favor de validarlo:</strong></label><br>
         <button type="button" id="confirm-btn" class="btn-entrar">Registros correctos</button>
         <button type="button" id="reject-btn" class="btn-entrar">Registros incorrectos</button>

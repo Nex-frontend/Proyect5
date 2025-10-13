@@ -391,6 +391,10 @@ def preview_upload_view(request: HttpRequest) -> JsonResponse:
                 if len(line) < REQUIRED_LINE_LEN:
                     line = line.ljust(REQUIRED_LINE_LEN)
                 data = {field: line[start:end].rstrip() for field, start, end in FIELDS}
+                # Validar campos clave y loguear si están vacíos
+                if not data.get('rfc'):
+                    print(f"DEBUG: RFC vacío en línea {idx} - Línea: '{line[:50]}...'")
+                print(f"DEBUG: Línea procesada - RFC: '{data.get('rfc')}', Nombre: '{data.get('nombre')}', Tipo: '{data.get('tipo')}'")  # Depuración
                 # Sobrescribir con sesión
                 data['lote_anterior'] = request.session.get('lote_anterior') or data['lote_anterior']
                 data['qna_ini'] = request.session.get('qna_ini') or data['qna_ini']
