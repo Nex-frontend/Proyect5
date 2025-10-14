@@ -2,6 +2,37 @@
 {% block content %}
 <h2>Página de carga</h2>
 
+<style>
+/* Estilos compactos para la tabla de preview */
+table[role="grid"] {
+  width: 100%;
+  max-width: 900px;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed;
+}
+table[role="grid"] th, table[role="grid"] td {
+  padding: 4px 6px;
+  border: 1px solid #e6e6e6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal; /* permitir wrap para evitar que inputs se salgan de la celda */
+}
+/* Campos de texto más pequeños y con ancho controlado por columna */
+table[role="grid"] input[type="text"] {
+  color: #000 !important;
+  background-color: transparent !important;
+  text-indent: 0 !important;
+  font-size: 12px !important;
+  padding: 3px 6px !important;
+  height: 28px !important;
+  box-sizing: border-box;
+  width: 100% !important; /* ocupar todo el ancho de la celda */
+}
+
+.plain-rfc { font-size: 11px; color: #333; margin-top: 4px; display:block; }
+</style>
+
 <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
     <strong>📋 Configuración Actual:</strong> Quincena <strong>{{ qna_ini }}</strong> | Lote <strong>{{ lote_anterior }}</strong>
 </div>
@@ -19,27 +50,30 @@
     <strong>Resumen:</strong> Tipo A: {{ tipo_a_count }} | Tipo B: {{ tipo_b_count }} | Total: {{ total_count }}
 </div>
 <form id="validation-form">
-    <table role="grid">
-        <thead>
-            <tr>
-                <th>RFC</th>
-                <th>Nombre</th>
-                <th>Cadena1</th>
-                <th>Tipo</th>
-                <th>Importe</th>
-                <th>Cpto</th>
-                <th>Lote Actual</th>
-                <th>QNA</th>
-                <th>Ptje</th>
-                <th>Observación</th>
-                <th>Lote Anterior</th>
-                <th>QNA Inicial</th>
+    <table role="grid"> 
+        <thead> {# Encabezado de la tabla #}
+            <tr> {# Fila de Nombre de encabezados #}
+              <th>RFC</th>
+              <th>Nombre</th>
+              <th>Cadena</th>
+              <th>Tipo</th>
+              <th>Importe</th>
+              <th>CPTO</th>
+              <th>Lote</th>
+              <th>QNA</th>
+              <th>Ptje</th>
+              <th>Observación</th>
+              <th>Lote</th>
+              <th>QNA_Proceso</th>
             </tr>
         </thead>
         <tbody id="records-body">
             {% for r in preview_records %}
             <tr>
-                <td><input type="text" name="rfc" value="{{ r.rfc|default:'' }}" maxlength="13" placeholder="RFC" title="RFC: {{ r.rfc|default:'N/A' }}"></td>
+                <td>
+                  <input type="text" name="rfc" value="{{ r.rfc|default:'' }}" maxlength="13" placeholder="RFC" title="RFC: {{ r.rfc|default:'N/A' }}">
+                  <div class="plain-rfc" style="font-size:12px; color:#333; margin-top:4px;">{{ r.rfc|default:'' }}</div>
+                </td>
                 <td><input type="text" name="nombre" value="{{ r.nombre|default:'' }}" maxlength="30" placeholder="Nombre" title="Nombre: {{ r.nombre|default:'N/A' }}"></td>
                 <td><input type="text" name="cadena1" value="{{ r.cadena1|default:'' }}" maxlength="37" placeholder="Cadena1" title="Cadena1: {{ r.cadena1|default:'N/A' }}"></td>
                 <td><input type="text" name="tipo" value="{{ r.tipo|default:'' }}" maxlength="1" placeholder="Tipo" title="Tipo: {{ r.tipo|default:'N/A' }}"></td>

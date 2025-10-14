@@ -98,6 +98,12 @@ def carga_view(request: HttpRequest) -> HttpResponse:
         'tipo_b_count': tipo_b_count,
         'total_count': total_count,
     }
+    # Depuración: mostrar primer registro de preview (si existe) para verificar valores antes de render
+    if preview_records:
+        try:
+            print(f"DEBUG carga_view: preview_records[0] = {preview_records[0]!r}")
+        except Exception as e:
+            print(f"DEBUG carga_view: error imprimiendo preview_records[0]: {e}")
     return render(request, 'carga.html', context)
 
 @login_required # Consulta de archivos
@@ -290,11 +296,17 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
     for f in files:
         try:
             content = f.read()
-            # Intentar decodificar como UTF-8, con fallback latin-1
+            # Intentar decodificar preferentemente con utf-8-sig (quita BOM), luego utf-8 y fallback latin-1
             try:
-                text = content.decode('utf-8')
-            except UnicodeDecodeError:
-                text = content.decode('latin-1')
+                text = content.decode('utf-8-sig')
+            except Exception:
+                try:
+                    text = content.decode('utf-8')
+                except UnicodeDecodeError:
+                    text = content.decode('latin-1')
+            # Quitar BOM residual si existe
+            if text and text[0] == '\ufeff':
+                text = text.lstrip('\ufeff')
 
             lines = [ln.rstrip('\r\n') for ln in text.splitlines() if ln.strip()]
             if not lines:
@@ -313,11 +325,17 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
                     # Asegurar ancho para cortes (pad con espacios hasta 159)
                     if len(line) < REQUIRED_LINE_LEN:
                         line = line.ljust(REQUIRED_LINE_LEN)
+                    # Construir diccionario de campos a partir de cortes fixed-width
                     data = {}
                     for field, start, end in FIELDS:
-                        data[field] = line[start:end].rstrip()
+                        # usar strip() para eliminar espacios a ambos lados
+                        data[field] = line[start:end].strip()
 
-                    # Crear instancia usando ORM (se insertará en MySQL)
+                    # Depuración adicional: registrar la representación cruda de la línea para detectar offsets/encoding
+                    print(f"DEBUG RAW LINE ({f.name} line {idx}): {repr(line[:60])}")
+                    if not data.get('rfc'):
+                        print(f"DEBUG RFC MISSING SLICES ({f.name} line {idx}): slice0={repr(line[0:13])} slice13={repr(line[13:43])} len={len(line)}")
+                    # Crear instancia usando ORM (se insertar\u0000 en MySQL)
                     rec = Record(
                         rfc=data['rfc'][:13],
                         nombre=data['nombre'][:30],
