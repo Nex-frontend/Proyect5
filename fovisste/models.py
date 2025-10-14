@@ -5,8 +5,8 @@ from django.contrib.auth.models import User
 class Record(models.Model):
     # Campos de auditoría - nuevos campos agregados para rastreo
     # Para facilitar migraciones y cargas iniciales, permitimos null/blank en todos.
-    rfc = models.CharField(max_length=13, db_index=True, blank=True, null=True, default='')
     nombre = models.CharField(max_length=30, db_index=True, blank=True, null=True, default='')
+    rfc = models.CharField(max_length=13, db_index=True, blank=True, null=True, default='')
     cadena1 = models.CharField(max_length=37, blank=True, null=True, default='')
     tipo = models.CharField(max_length=1, blank=True, null=True, default='')
     impor = models.CharField(max_length=8, blank=True, null=True, default='')
