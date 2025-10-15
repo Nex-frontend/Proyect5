@@ -1,0 +1,46 @@
+/* Estilos para la tabla de preview */
+table[role="grid"] {
+  width: 100%;
+  max-width: 1100px;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: center;
+  table-layout: auto; /* permitir que las celdas se ajusten al contenido */
+}
+table[role="grid"] th, table[role="grid"] td {
+  padding: 6px 8px;
+  border: 1px solid #e6e6e6;
+  vertical-align: top;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-break: break-word;
+}
+/* Campos de texto: ocupar el ancho disponible dentro de la celda */
+table[role="grid"] input[type="text"] {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  text-indent: 0 !important;
+  font-size: 11px !important;
+  text-align: center;
+  padding: 4px 6px !important;
+  height: auto !important;
+  box-sizing: border-box;
+  width: 100% !important; /* ocupar todo el ancho de la celda */
+}
+
+/* Contenedor responsive: permite scroll horizontal en pantallas pequeñas */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  table[role="grid"] {
+    font-size: 12px;
+  }
+  table[role="grid"] th, table[role="grid"] td {
+    padding: 6px 4px;
+  }
+}
+

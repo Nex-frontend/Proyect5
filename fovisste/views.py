@@ -189,6 +189,8 @@ def resultados_view(request: HttpRequest) -> HttpResponse:
         'qna_filter': qna_filter,
         'lote_filter': lote_filter,
     }
+    # Renderizar la plantilla de resultados con el contexto generado
+    return render(request, 'resultados.html', context)
 @login_required
 @permission_required('fovisste.add_record', raise_exception=True)
 def update_lote_view(request: HttpRequest) -> JsonResponse:
@@ -197,7 +199,10 @@ def update_lote_view(request: HttpRequest) -> JsonResponse:
         nuevo_lote = request.POST.get('nuevo_lote', '').strip()
         if not re.fullmatch(r"\d{4}", nuevo_lote):
             return JsonResponse({'ok': False, 'error': 'Lote debe tener 4 dígitos.'}, status=400)
+        # Actualizar lote en sesión y limpiar cualquier preview previo
         request.session['lote_anterior'] = nuevo_lote
+        request.session.pop('preview_records', None)
+        request.session.pop('preview_errors', None)
         return JsonResponse({'ok': True})
     return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
 @permission_required('fovisste.add_record', raise_exception=True)
@@ -235,6 +240,8 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
         print("DEBUG: Entrando en flujo de confirmación en api_upload_view")  # Depuración
         preview_records = request.session.get('preview_records', [])
         print(f"DEBUG: Preview records en confirmación: {len(preview_records)}")  # Depuración
+        # Inicializar contador de creados para el caso en que no haya registros
+        total_created = 0
         batch = []
         for data in preview_records:
             rec = Record(

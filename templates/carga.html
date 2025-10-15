@@ -2,38 +2,9 @@
 {% block content %}
 <h2>Página de carga</h2>
 
-<style>
-/* Estilos compactos para la tabla de preview */
-table[role="grid"] {
-  width: 100%;
-  max-width: 900px;
-  border-collapse: collapse;
-  font-size: 13px;
-  table-layout: fixed;
-}
-table[role="grid"] th, table[role="grid"] td {
-  padding: 4px 6px;
-  border: 1px solid #e6e6e6;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: normal; /* permitir wrap para evitar que inputs se salgan de la celda */
-}
-/* Campos de texto más pequeños y con ancho controlado por columna */
-table[role="grid"] input[type="text"] {
-  color: #000 !important;
-  background-color: transparent !important;
-  text-indent: 0 !important;
-  font-size: 12px !important;
-  padding: 3px 6px !important;
-  height: 28px !important;
-  box-sizing: border-box;
-  width: 100% !important; /* ocupar todo el ancho de la celda */
-}
+{# Estilos de UI movidos a static/css/app.css - incluidos en base.html #}
 
-.plain-rfc { font-size: 11px; color: #333; margin-top: 4px; display:block; }
-</style>
-
-<div style="background-color: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
+<div style="background-color: #085563; border: 1px solid #ffffff; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
     <strong>📋 Configuración Actual:</strong> Quincena <strong>{{ qna_ini }}</strong> | Lote <strong>{{ lote_anterior }}</strong>
 </div>
 
@@ -50,45 +21,49 @@ table[role="grid"] input[type="text"] {
     <strong>Resumen:</strong> Tipo A: {{ tipo_a_count }} | Tipo B: {{ tipo_b_count }} | Total: {{ total_count }}
 </div>
 <form id="validation-form">
-    <table role="grid"> 
-        <thead> {# Encabezado de la tabla #}
-            <tr> {# Fila de Nombre de encabezados #}
-              <th>RFC</th>
-              <th>Nombre</th>
-              <th>Cadena</th>
-              <th>Tipo</th>
-              <th>Importe</th>
-              <th>CPTO</th>
-              <th>Lote</th>
-              <th>QNA</th>
-              <th>Ptje</th>
-              <th>Observación</th>
-              <th>Lote</th>
-              <th>QNA_Proceso</th>
-            </tr>
-        </thead>
-        <tbody id="records-body">
-            {% for r in preview_records %}
-            <tr>
-                <td>
-                  <input type="text" name="rfc" value="{{ r.rfc|default:'' }}" maxlength="13" placeholder="RFC" title="RFC: {{ r.rfc|default:'N/A' }}">
-                  <div class="plain-rfc" style="font-size:12px; color:#333; margin-top:4px;">{{ r.rfc|default:'' }}</div>
-                </td>
-                <td><input type="text" name="nombre" value="{{ r.nombre|default:'' }}" maxlength="30" placeholder="Nombre" title="Nombre: {{ r.nombre|default:'N/A' }}"></td>
-                <td><input type="text" name="cadena1" value="{{ r.cadena1|default:'' }}" maxlength="37" placeholder="Cadena1" title="Cadena1: {{ r.cadena1|default:'N/A' }}"></td>
-                <td><input type="text" name="tipo" value="{{ r.tipo|default:'' }}" maxlength="1" placeholder="Tipo" title="Tipo: {{ r.tipo|default:'N/A' }}"></td>
-                <td><input type="text" name="impor" value="{{ r.impor|default:'' }}" maxlength="8" placeholder="Importe" title="Importe: {{ r.impor|default:'N/A' }}"></td>
-                <td><input type="text" name="cpto" value="{{ r.cpto|default:'' }}" maxlength="2" placeholder="Cpto" title="Cpto: {{ r.cpto|default:'N/A' }}"></td>
-                <td><input type="text" name="lote_actual" value="{{ r.lote_actual|default:'' }}" maxlength="1" placeholder="Lote Actual" title="Lote Actual: {{ r.lote_actual|default:'N/A' }}"></td>
-                <td><input type="text" name="qna" value="{{ r.qna|default:'' }}" maxlength="6" placeholder="QNA" title="QNA: {{ r.qna|default:'N/A' }}"></td>
-                <td><input type="text" name="ptje" value="{{ r.ptje|default:'' }}" maxlength="2" placeholder="Ptje" title="Ptje: {{ r.ptje|default:'N/A' }}"></td>
-                <td><input type="text" name="observacio" value="{{ r.observacio|default:'' }}" maxlength="47" placeholder="Observación" title="Observación: {{ r.observacio|default:'N/A' }}"></td>
-                <td><input type="text" name="lote_anterior" value="{{ r.lote_anterior|default:'' }}" maxlength="5" placeholder="Lote Anterior" title="Lote Anterior: {{ r.lote_anterior|default:'N/A' }}"></td>
-                <td><input type="text" name="qna_ini" value="{{ r.qna_ini|default:'' }}" maxlength="6" placeholder="QNA Inicial" title="QNA Inicial: {{ r.qna_ini|default:'N/A' }}"></td>
-            </tr>
-            {% endfor %}
-        </tbody>
+  <div class="table-responsive">
+    <table role="grid"> {# Tabla de resultados #}
+      <colgroup> {# Define el ancho de cada columna #}
+        <col style="width:9%">
+        <col style="width:18%">
+        <col style="width:16%">
+        <col style="width:3%">
+        <col style="width:6%">
+        <col style="width:3%">
+        <col style="width:5%">
+        <col style="width:5%">
+        <col style="width:4%">
+      </colgroup>
+      <thead> {# Encabezado de la tabla #}
+        <tr> {# Fila de Nombre de encabezados #}
+          <th>RFC</th>
+          <th>Nombre</th>
+          <th>Cadena</th>
+          <th>Tipo</th>
+          <th>Importe</th>
+          <th>CPTO</th>
+          <th>Lote</th>
+          <th>QNA</th>
+          <th>Ptje</th>
+        </tr>
+      </thead>
+      <tbody id="records-body">
+        {% for r in preview_records %}
+        <tr>
+          <td><input type="text" name="rfc" value="{{ r.rfc|default:'' }}" maxlength="13" placeholder="RFC" title="RFC: {{ r.rfc|default:'N/A' }}"></td>
+          <td><input type="text" name="nombre" value="{{ r.nombre|default:'' }}" maxlength="30" placeholder="Nombre" title="Nombre: {{ r.nombre|default:'N/A' }}"></td>
+          <td><input type="text" name="cadena1" value="{{ r.cadena1|default:'' }}" maxlength="37" placeholder="Cadena1" title="Cadena1: {{ r.cadena1|default:'N/A' }}"></td>
+          <td><input type="text" name="tipo" value="{{ r.tipo|default:'' }}" maxlength="1" placeholder="Tipo" title="Tipo: {{ r.tipo|default:'N/A' }}"></td>
+          <td><input type="text" name="impor" value="{{ r.impor|default:'' }}" maxlength="8" placeholder="Importe" title="Importe: {{ r.impor|default:'N/A' }}"></td>
+          <td><input type="text" name="cpto" value="{{ r.cpto|default:'' }}" maxlength="2" placeholder="Cpto" title="Cpto: {{ r.cpto|default:'N/A' }}"></td>
+          <td><input type="text" name="lote_actual" value="{{ r.lote_actual|default:'' }}" maxlength="1" placeholder="Lote Actual" title="Lote Actual: {{ r.lote_actual|default:'N/A' }}"></td>
+          <td><input type="text" name="qna" value="{{ r.qna|default:'' }}" maxlength="6" placeholder="QNA" title="QNA: {{ r.qna|default:'N/A' }}"></td>
+          <td><input type="text" name="ptje" value="{{ r.ptje|default:'' }}" maxlength="2" placeholder="Ptje" title="Ptje: {{ r.ptje|default:'N/A' }}"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
     </table>
+  </div>
         <label><strong>¿Los registros son correctos? Favor de validarlo:</strong></label><br>
         <button type="button" id="confirm-btn" class="btn-entrar">Registros correctos</button>
         <button type="button" id="reject-btn" class="btn-entrar">Registros incorrectos</button>
@@ -225,7 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
           })
           .then(data => {
             if (data.ok) {
-              window.location.href = "{% url 'resultados' %}";
+              // Si no se va a cargar otro lote con la misma quincena, regresar a la página de configuración
+              window.location.href = "{% url 'qnaproceso' %}";
             } else {
               if (out) out.innerHTML = 'Error al confirmar: ' + (data.error || JSON.stringify(data));
             }

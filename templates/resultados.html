@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Resultados de carga</h2>
+<p>Resumen de registros cargados recientemente. Esta es una plantilla mínima.
+{% if records %}
+  <table>
+    <thead>
+      <tr><th>RFC</th><th>Nombre</th><th>QNA</th><th>Lote</th><th>Fecha</th></tr>
+    </thead>
+    <tbody>
+    {% for r in records %}
+      <tr>
+        <td>{{ r.rfc }}</td>
+        <td>{{ r.nombre }}</td>
+        <td>{{ r.qna_ini }}</td>
+        <td>{{ r.lote_anterior }}</td>
+        <td>{{ r.fecha_carga }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No se encontraron registros recientes.</p>
+{% endif %}
+{% endblock %}
