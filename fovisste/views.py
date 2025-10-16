@@ -1,5 +1,9 @@
 import io
 import re
+import os
+
+from django.conf import settings
+from django.http import FileResponse, Http404
 
 from django.contrib import messages
 from django.contrib.auth import login, logout
@@ -32,6 +36,14 @@ def ensure_roles(): # Crear roles si no existen
 
 def add_activity(user, segmento, actividad): # Agregar actividad
     Activity.objects.create(user=user, segmento=segmento, actividad=actividad)
+
+
+def devtools_probe(request):
+    """Sirve un JSON dummy para solicitudes de Chrome DevTools a /.well-known/... en desarrollo."""
+    fn = os.path.join(settings.BASE_DIR, 'static', '.well-known', 'appspecific', 'com.chrome.devtools.json')
+    if not os.path.exists(fn):
+        raise Http404('Not Found')
+    return FileResponse(open(fn, 'rb'), content_type='application/json')
 
 def signup_view(request: HttpRequest) -> HttpResponse: # Registro de usuario
     ensure_roles()
@@ -68,7 +80,7 @@ def carga_view(request: HttpRequest) -> HttpResponse:
 
     qna_ini = request.session.get('qna_ini')
     lote_anterior = request.session.get('lote_anterior')
-
+    
     # Verificar si ya existe una carga para esta combinación
     if has_existing_load(request.user, qna_ini, lote_anterior):
         messages.warning(request, 'Ya existe una carga para esta combinación. Reinicia el proceso en la página de Quincena Proceso.')
@@ -243,6 +255,9 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
         # Inicializar contador de creados para el caso en que no haya registros
         total_created = 0
         batch = []
+        if not preview_records:
+            return JsonResponse({'ok': False, 'error': 'No hay registros en preview para confirmar.'}, status=400)
+
         for data in preview_records:
             rec = Record(
                 rfc=data.get('rfc', '')[:13],
@@ -260,14 +275,18 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
                 responsable=request.user,
             )
             batch.append(rec)
-
-        if batch:
-            print(f"DEBUG: Procesando {len(batch)} registros para bulk_create")  # Depuración
-            Record.objects.bulk_create(batch, batch_size=1000)
-            total_created = len(batch)
-            print(f"DEBUG: Registros creados exitosamente: {total_created}")  # Depuración
-        else:
-            print("DEBUG: No hay registros para procesar en confirmación")  # Depuración
+        try:
+            if batch:
+                print(f"DEBUG: Procesando {len(batch)} registros para bulk_create")  # Depuración
+                with transaction.atomic():
+                    Record.objects.bulk_create(batch, batch_size=1000)
+                total_created = len(batch)
+                print(f"DEBUG: Registros creados exitosamente: {total_created}")  # Depuración
+            else:
+                print("DEBUG: No hay registros para procesar en confirmación")  # Depuración
+        except Exception as e:
+            print(f"ERROR: falló bulk_create: {e}")
+            return JsonResponse({'ok': False, 'error': f'Error al insertar registros: {e}'}, status=500)
 
         # Limpiar sesiones
         request.session.pop('preview_records', None)
