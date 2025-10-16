@@ -15,10 +15,11 @@ table[role="grid"] th, table[role="grid"] td {
   text-overflow: clip;
   white-space: normal;
   word-break: break-word;
+  color: #000000; /* forzar color de texto negro en celdas */
 }
 /* Campos de texto: ocupar el ancho disponible dentro de la celda */
 table[role="grid"] input[type="text"] {
-  color: #ffffff !important;
+  color: #000000 !important;
   background-color: transparent !important;
   text-indent: 0 !important;
   font-size: 11px !important;
@@ -27,6 +28,18 @@ table[role="grid"] input[type="text"] {
   height: auto !important;
   box-sizing: border-box;
   width: 100% !important; /* ocupar todo el ancho de la celda */
+}
+
+/* Forzar color negro en cualquier elemento dentro de las celdas (más específico) */
+table[role="grid"] td *, table[role="grid"] th * {
+  color: #000000 !important;
+}
+
+/* Asegurar que los placeholders también se muestren en negro */
+table[role="grid"] input::placeholder,
+table[role="grid"] input[type="text"]::placeholder {
+  color: #000000 !important;
+  opacity: 1 !important;
 }
 
 /* Contenedor responsive: permite scroll horizontal en pantallas pequeñas */
