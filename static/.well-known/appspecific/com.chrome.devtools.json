@@ -1,0 +1,4 @@
+{
+  "allowed": true,
+  "note": "Archivo creado para evitar 404s de Chrome DevTools en entorno de desarrollo. No es utilizado por la aplicación." 
+}
