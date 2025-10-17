@@ -152,8 +152,34 @@ document.addEventListener('DOMContentLoaded', () => {
     if (confirmBtn) {
       confirmBtn.addEventListener('click', () => {
         console.log('Botón Registros correctos clicado');
-        const modal = document.getElementById('multiple-load-modal');
-        if (modal) modal.style.display = 'block';
+        const out = document.getElementById('upload-result');
+        if (out) out.innerHTML = 'Confirmando carga...';
+        const payload = new FormData();
+        payload.append('confirm', '1');
+        fetch("{% url 'api_upload' %}", {
+          method: 'POST',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') },
+          body: payload
+        })
+        .then(async r => {
+          let data;
+          try { data = await r.json(); } catch(e) { data = { ok:false, error: 'Respuesta no válida' }; }
+          if (!r.ok) throw data;
+          return data;
+        })
+        .then(data => {
+          if (data.ok) {
+            if (out) out.innerHTML = `Registros guardados: ${data.created}`;
+            // Mostrar modal para preguntar si desea cargar otro archivo
+            const modal = document.getElementById('multiple-load-modal');
+            if (modal) modal.style.display = 'block';
+          } else {
+            if (out) out.innerHTML = 'Error al confirmar: ' + (data.error || JSON.stringify(data));
+          }
+        })
+        .catch(err => {
+          if (out) out.innerHTML = 'Error al confirmar: ' + (err.error || err);
+        });
       });
     }
 
@@ -182,33 +208,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (noBtn) {
       noBtn.addEventListener('click', () => {
-          // El usuario confirma que no desea cargar más archivos: proceder a confirmar la carga
-          const out = document.getElementById('upload-result');
-          if (out) out.innerHTML = 'Confirmando carga...';
-          const payload = new FormData();
-          payload.append('confirm', '1');
-    fetch("{% url 'api_upload' %}", {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCookie('csrftoken') },
-            body: payload
-          })
-          .then(async r => {
-            let data;
-            try { data = await r.json(); } catch(e) { data = { ok:false, error: 'Respuesta no válida' }; }
-            if (!r.ok) throw data;
-            return data;
-          })
-          .then(data => {
-            if (data.ok) {
-              // Si no se va a cargar otro lote con la misma quincena, regresar a la página de configuración
-              window.location.href = "{% url 'qnaproceso' %}";
-            } else {
-              if (out) out.innerHTML = 'Error al confirmar: ' + (data.error || JSON.stringify(data));
-            }
-          })
-          .catch(err => {
-            if (out) out.innerHTML = 'Error al confirmar: ' + (err.error || err);
-          });
+          // El usuario no desea cargar más archivos: cerrar modal y redirigir a configuración
+          const modal = document.getElementById('multiple-load-modal');
+          if (modal) modal.style.display = 'none';
+          window.location.href = "{% url 'qnaproceso' %}";
       });
     }
 

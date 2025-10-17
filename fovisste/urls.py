@@ -1,11 +1,20 @@
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.conf import settings
 from . import views
+
+# En desarrollo puede haber problemas con cookies/CSRF; para facilitar testing local
+# si DEBUG=True permitimos temporalmente que el login no exija CSRF. En producción
+# NUNCA debe estar csrf_exempt.
+if settings.DEBUG:
+    login_view = csrf_exempt(auth_views.LoginView.as_view(template_name='registration/login.html'))
+else:
+    login_view = ensure_csrf_cookie(auth_views.LoginView.as_view(template_name='registration/login.html'))
 
 urlpatterns = [
     path('.well-known/appspecific/com.chrome.devtools.json', views.devtools_probe),
-    path('login/', ensure_csrf_cookie(auth_views.LoginView.as_view(template_name='registration/login.html')), name='login'),
+    path('login/', login_view, name='login'),
     path('logout/', auth_views.LogoutView.as_view(template_name='logout.html'), name='logout'),
     path('signup/', views.signup_view, name='signup'),
 
