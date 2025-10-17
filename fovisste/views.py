@@ -140,7 +140,17 @@ def consulta_view(request: HttpRequest) -> HttpResponse:
             Q(qna_ini__icontains=q)
         )
         add_activity(request.user, 'consulta', f'busqueda q="{q}"')
-    return render(request, 'consulta.html', {'q': q, 'results': results})
+    # Calcular total de registros: usar count() si es un QuerySet (más eficiente),
+    # o len() si es una lista/iterable ya evaluada.
+    if hasattr(results, 'count') and callable(getattr(results, 'count')):
+        try:
+            total = results.count()
+        except Exception:
+            total = len(results)
+    else:
+        total = len(results)
+
+    return render(request, 'consulta.html', {'q': q, 'results': results, 'total': total})
 
 @login_required  # Página de quincena en proceso
 def qnaproceso_view(request: HttpRequest) -> HttpResponse:
@@ -176,6 +186,7 @@ def qnaproceso_view(request: HttpRequest) -> HttpResponse:
         'lote_anterior': request.session.get('lote_anterior', ''),
     }
     return render(request, 'qnaproceso.html', ctx)
+# Resultados de cargas recientes 
 @login_required
 @permission_required('fovisste.view_record', raise_exception=True)
 def resultados_view(request: HttpRequest) -> HttpResponse:
