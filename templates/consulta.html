@@ -4,7 +4,13 @@
 <form method="get"> {# Formulario de búsqueda #}
   <input type="text" name="q" value="{{ q }}" placeholder="Buscar por RFC, Nombre, Cadena1, QNA, etc." /> {# Input para la búsqueda #}
   <button type="submit" class="btn-entrar">Buscar</button> {# Botón de búsqueda #}
-  {% if q %}<small>Mostrando resultados para: <strong>{{ q }}</strong></small>{% endif %} {# Mostrar resultados #}
+  {# Mostrar total de registros: usar 'total' si el view lo proporciona, si no usar results|length #}
+  <br>
+  <small>Total de registros: <strong>{% if total is not None %}{{ total }}{% else %}{{ results|length }}{% endif %}</strong></small>
+  {% if q %}
+    <br>
+    <small>Mostrando resultados para: <strong>{{ q }}</strong></small>
+  {% endif %} {# Mostrar resultados #}
   <br>
 </form>
 {# aqui puedo hacer cambioa los nombres de las columnas y filtros de la tabla #}
@@ -13,14 +19,12 @@
     <tr> {# Fila de encabezado #}
       <th>RFC</th>
       <th>Nombre</th>
-      <th>Cadena</th>
       <th>Tipo</th>
       <th>Importe</th>
       <th>CPTO</th>
       <th>Lote</th>
       <th>QNA</th>
       <th>Ptje</th>
-      <th>Observación</th>
       <th>Lote</th>
       <th>QNA_Proceso</th>
       <th>Responsable</th>
@@ -32,21 +36,19 @@
     <tr> {# Fila de la tabla #}
       <td>{{ r.rfc }}</td>
       <td>{{ r.nombre }}</td>
-      <td>{{ r.cadena1 }}</td>
       <td>{{ r.tipo }}</td>
       <td>{{ r.impor }}</td>
       <td>{{ r.cpto }}</td>
       <td>{{ r.lote_actual }}</td>
       <td>{{ r.qna }}</td>
       <td>{{ r.ptje }}</td>
-      <td>{{ r.observacio }}</td>
       <td>{{ r.lote_anterior }}</td>
       <td>{{ r.qna_ini }}</td>
       <td>{{ r.responsable }}</td>
-      <td>{{ r.fecha_carga }}</td>
+      <td>{{ r.fecha_carga|date:"d/m/y"|default:"/" }}</td>
     </tr>
-    {% empty %}
-    <tr><td colspan="12">Sin resultados</td></tr>
+  {% empty %}
+  <tr><td colspan="10">Sin resultados</td></tr>
     {% endfor %}
   </tbody>
 </table>

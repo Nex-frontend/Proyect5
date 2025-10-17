@@ -14,7 +14,7 @@
         <td>{{ r.nombre }}</td>
         <td>{{ r.qna_ini }}</td>
         <td>{{ r.lote_anterior }}</td>
-        <td>{{ r.fecha_carga }}</td>
+  <td>{{ r.fecha_carga|date:"Y/m/d"|default:"/" }}</td>
       </tr>
     {% endfor %}
     </tbody>
