@@ -124,7 +124,7 @@ def consulta_view(request: HttpRequest) -> HttpResponse:
     q = request.GET.get('q', '').strip()
     results = []  # Inicializar results como lista vacía
 
-    if q:
+    if q:     #si q es verdadera entonces muestraa los valores de estos campos o columnas
         results = Record.objects.filter(
             Q(rfc__icontains=q) |
             Q(nombre__icontains=q) |
@@ -133,7 +133,6 @@ def consulta_view(request: HttpRequest) -> HttpResponse:
             Q(impor__icontains=q) |
             Q(cpto__icontains=q) |
             Q(lote_actual__icontains=q) |
-            Q(qna__icontains=q) |
             Q(ptje__icontains=q) |
             Q(observacio__icontains=q) |
             Q(lote_anterior__icontains=q) |
