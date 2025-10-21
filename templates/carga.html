@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (noBtn) {
       noBtn.addEventListener('click', () => {
-          // El usuario no desea cargar más archivos: cerrar modal y redirigir a configuración
+          // El usuario no desea cargar más archivos: cerrar modal y redirigir a configuración qnaproceso.html
           const modal = document.getElementById('multiple-load-modal');
           if (modal) modal.style.display = 'none';
           window.location.href = "{% url 'qnaproceso' %}";

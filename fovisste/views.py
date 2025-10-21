@@ -204,6 +204,7 @@ def resultados_view(request: HttpRequest) -> HttpResponse:
         records = records.filter(lote_anterior__icontains=lote_filter)
 
     # Limitar a los últimos 200 para evitar sobrecarga
+    # En un futuro usar páginación
     records = records[:200]
 
     context = {
@@ -323,8 +324,8 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
         ("qna", 92, 98),
         ("ptje", 98, 100),
         ("observacio", 100, 147),
-        ("lote_anterior", 147, 153),
-        ("qna_ini", 153, 157),
+        ("lote_anterior", 147, 153), # actualizar de 147, 151
+        ("qna_ini", 153, 157),   # actualizar 151,157
     ]
     REQUIRED_LINE_LEN = 157
     REQUIRED_MIN_LEN = 100  # según aclaración: si la línea tiene 100, el resto son blancos
