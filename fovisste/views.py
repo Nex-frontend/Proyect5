@@ -328,7 +328,7 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
         ("qna_ini", 153, 157),   # actualizar 151,157
     ]
     REQUIRED_LINE_LEN = 157
-    REQUIRED_MIN_LEN = 94  # según aclaración: si la línea tiene 100, el resto son blancos, poner 92
+    REQUIRED_MIN_LEN = 94  # según aclaración: si la línea tiene 92 PONER EN BLANCO AL RESTO
 
     for f in files:
         try:
@@ -361,7 +361,29 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
                         continue
                     # Asegurar ancho para cortes (pad con espacios hasta 159)
                     if len(line) < REQUIRED_LINE_LEN:
-                        line = line.ljust(REQUIRED_LINE_LEN)
+                        # Special handling when minimal accepted length is 94:
+                        # move characters at positions 93-94 (1-based) into
+                        # positions 156-157 (1-based) which correspond to
+                        # indices 92-93 -> 155-156 (0-based). The region
+                        # between stays blank. This preserves PTJE when file
+                        # writers placed it early in a short record.
+                        if REQUIRED_MIN_LEN == 94:
+                            # create a blank buffer of target length
+                            buf = list(' ' * REQUIRED_LINE_LEN)
+                            # copy everything up to index 92 (0..91) if present
+                            upto = min(len(line), 92)
+                            for i in range(upto):
+                                buf[i] = line[i]
+                            # move char at original index 92 -> target 155
+                            if len(line) > 92:
+                                buf[155] = line[92]
+                            # move char at original index 93 -> target 156
+                            if len(line) > 93:
+                                buf[156] = line[93]
+                            # remaining positions remain as spaces
+                            line = ''.join(buf)
+                        else:
+                            line = line.ljust(REQUIRED_LINE_LEN)
                     # Construir diccionario de campos a partir de cortes fixed-width
                     data = {}
                     for field, start, end in FIELDS:
@@ -372,6 +394,10 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
                     print(f"DEBUG RAW LINE ({f.name} line {idx}): {repr(line[:60])}")
                     if not data.get('rfc'):
                         print(f"DEBUG RFC MISSING SLICES ({f.name} line {idx}): slice0={repr(line[0:13])} slice13={repr(line[13:43])} len={len(line)}")
+                    # Fallback especial para PTJE cuando se usó la regla de 94
+                    if REQUIRED_MIN_LEN == 94 and not data.get('ptje'):
+                        # PTJE fue movido a posiciones 156-157 (1-based) -> 155:157 (0-based slice)
+                        data['ptje'] = line[155:157].strip()
                     # Crear instancia usando ORM (se insertar\u0000 en MySQL)
                     rec = Record(
                         rfc=data['rfc'][:13],
@@ -456,9 +482,24 @@ def preview_upload_view(request: HttpRequest) -> JsonResponse:
                     errors.append({'file': f.name, 'line': idx, 'error': f'Longitud {len(line)} < {REQUIRED_MIN_LEN}'})
                     continue
                 if len(line) < REQUIRED_LINE_LEN:
-                    line = line.ljust(REQUIRED_LINE_LEN)
+                    # Same special handling for preview parsing
+                    if REQUIRED_MIN_LEN == 94:
+                        buf = list(' ' * REQUIRED_LINE_LEN)
+                        upto = min(len(line), 92)
+                        for i in range(upto):
+                            buf[i] = line[i]
+                        if len(line) > 92:
+                            buf[155] = line[92]
+                        if len(line) > 93:
+                            buf[156] = line[93]
+                        line = ''.join(buf)
+                    else:
+                        line = line.ljust(REQUIRED_LINE_LEN)
                 data = {field: line[start:end].rstrip() for field, start, end in FIELDS}
                 # Validar campos clave y loguear si están vacíos
+                # Fallback especial para PTJE cuando se usó la regla de 94
+                if REQUIRED_MIN_LEN == 94 and not data.get('ptje'):
+                    data['ptje'] = line[155:157].strip()
                 if not data.get('rfc'):
                     print(f"DEBUG: RFC vacío en línea {idx} - Línea: '{line[:50]}...'")
                 print(f"DEBUG: Línea procesada - RFC: '{data.get('rfc')}', Nombre: '{data.get('nombre')}', Tipo: '{data.get('tipo')}'")  # Depuración
