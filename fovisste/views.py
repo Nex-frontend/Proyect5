@@ -328,7 +328,7 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
         ("qna_ini", 153, 157),   # actualizar 151,157
     ]
     REQUIRED_LINE_LEN = 157
-    REQUIRED_MIN_LEN = 100  # según aclaración: si la línea tiene 100, el resto son blancos
+    REQUIRED_MIN_LEN = 94  # según aclaración: si la línea tiene 100, el resto son blancos, poner 92
 
     for f in files:
         try:
@@ -437,7 +437,7 @@ def preview_upload_view(request: HttpRequest) -> JsonResponse:
         ("qna_ini", 153, 157),
     ]
     REQUIRED_LINE_LEN = 157
-    REQUIRED_MIN_LEN = 100
+    REQUIRED_MIN_LEN = 94
 
     for f in files:
         try:
