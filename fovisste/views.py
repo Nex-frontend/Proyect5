@@ -18,6 +18,29 @@ from django.urls import reverse
 from .forms import SignUpForm
 from .models import Record, Activity
 
+
+def normalize_short_line(line: str, required_min_len: int, required_line_len: int) -> str:
+    """Normalize a short fixed-width line into the target length.
+
+    If required_min_len >= 94 and required_line_len >= 157, move the
+    characters originally at indices 92 and 93 into target indices 155
+    and 156 respectively, and leave the middle region as spaces. Otherwise
+    right-pad the line to the target length.
+    """
+    if len(line) >= required_line_len:
+        return line
+    if required_min_len >= 94 and required_line_len >= 157:
+        buf = list(' ' * required_line_len)
+        upto = min(len(line), 92)
+        for i in range(upto):
+            buf[i] = line[i]
+        if len(line) > 92:
+            buf[155] = line[92]
+        if len(line) > 93:
+            buf[156] = line[93]
+        return ''.join(buf)
+    return line.ljust(required_line_len)
+
 # Helpers de roles
 UPLOADER_GROUP = 'uploader'
 VIEWER_GROUP = 'viewer'
@@ -327,7 +350,7 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
         ("lote_anterior", 147, 153), # actualizar de 147, 151
         ("qna_ini", 153, 157),   # actualizar 151,157
     ]
-    REQUIRED_LINE_LEN = 157
+    REQUIRED_LINE_LEN = 100
     REQUIRED_MIN_LEN = 94  # según aclaración: si la línea tiene 92 PONER EN BLANCO AL RESTO
 
     for f in files:
@@ -359,31 +382,9 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
                             'error': f'Longitud {len(line)} < {REQUIRED_MIN_LEN}',
                         })
                         continue
-                    # Asegurar ancho para cortes (pad con espacios hasta 159)
+                    # Asegurar ancho para cortes (pad con espacios hasta REQUIRED_LINE_LEN)
                     if len(line) < REQUIRED_LINE_LEN:
-                        # Special handling when minimal accepted length is 94:
-                        # move characters at positions 93-94 (1-based) into
-                        # positions 156-157 (1-based) which correspond to
-                        # indices 92-93 -> 155-156 (0-based). The region
-                        # between stays blank. This preserves PTJE when file
-                        # writers placed it early in a short record.
-                        if REQUIRED_MIN_LEN == 94:
-                            # create a blank buffer of target length
-                            buf = list(' ' * REQUIRED_LINE_LEN)
-                            # copy everything up to index 92 (0..91) if present
-                            upto = min(len(line), 92)
-                            for i in range(upto):
-                                buf[i] = line[i]
-                            # move char at original index 92 -> target 155
-                            if len(line) > 92:
-                                buf[155] = line[92]
-                            # move char at original index 93 -> target 156
-                            if len(line) > 93:
-                                buf[156] = line[93]
-                            # remaining positions remain as spaces
-                            line = ''.join(buf)
-                        else:
-                            line = line.ljust(REQUIRED_LINE_LEN)
+                        line = normalize_short_line(line, REQUIRED_MIN_LEN, REQUIRED_LINE_LEN)
                     # Construir diccionario de campos a partir de cortes fixed-width
                     data = {}
                     for field, start, end in FIELDS:
@@ -462,7 +463,7 @@ def preview_upload_view(request: HttpRequest) -> JsonResponse:
         ("lote_anterior", 147, 153),
         ("qna_ini", 153, 157),
     ]
-    REQUIRED_LINE_LEN = 157
+    REQUIRED_LINE_LEN = 100
     REQUIRED_MIN_LEN = 94
 
     for f in files:
@@ -482,19 +483,7 @@ def preview_upload_view(request: HttpRequest) -> JsonResponse:
                     errors.append({'file': f.name, 'line': idx, 'error': f'Longitud {len(line)} < {REQUIRED_MIN_LEN}'})
                     continue
                 if len(line) < REQUIRED_LINE_LEN:
-                    # Same special handling for preview parsing
-                    if REQUIRED_MIN_LEN == 94:
-                        buf = list(' ' * REQUIRED_LINE_LEN)
-                        upto = min(len(line), 92)
-                        for i in range(upto):
-                            buf[i] = line[i]
-                        if len(line) > 92:
-                            buf[155] = line[92]
-                        if len(line) > 93:
-                            buf[156] = line[93]
-                        line = ''.join(buf)
-                    else:
-                        line = line.ljust(REQUIRED_LINE_LEN)
+                    line = normalize_short_line(line, REQUIRED_MIN_LEN, REQUIRED_LINE_LEN)
                 data = {field: line[start:end].rstrip() for field, start, end in FIELDS}
                 # Validar campos clave y loguear si están vacíos
                 # Fallback especial para PTJE cuando se usó la regla de 94
