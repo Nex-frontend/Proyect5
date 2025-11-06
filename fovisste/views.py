@@ -22,22 +22,21 @@ from .models import Record, Activity
 def normalize_short_line(line: str, required_min_len: int, required_line_len: int) -> str:
     """Normalize a short fixed-width line into the target length.
 
-    If required_min_len >= 94 and required_line_len >= 157, move the
-    characters originally at indices 92 and 93 into target indices 155
-    and 156 respectively, and leave the middle region as spaces. Otherwise
-    right-pad the line to the target length.
+    Si required_min_len >= 94 y required_line_len >= 157, mueva los caracteres que originalmente 
+    se encuentran en los índices 92 y 93 a los índices de destino 155 y 156 respectivamente, y deje 
+    la región central como espacios. De lo contrario, rellene la línea a la derecha hasta alcanzar la longitud de destino.
     """
-    if len(line) >= required_line_len:
+    if len(line) >= required_line_len: # Lo suficiente largo
         return line
-    if required_min_len >= 94 and required_line_len >= 157:
+    if required_min_len >= 94 and required_line_len >= 157: # Regla especial de 94 a 157
         buf = list(' ' * required_line_len)
         upto = min(len(line), 92)
         for i in range(upto):
             buf[i] = line[i]
         if len(line) > 92:
-            buf[155] = line[92]
+            buf[98] = line[92]
         if len(line) > 93:
-            buf[156] = line[93]
+            buf[99] = line[93]
         return ''.join(buf)
     return line.ljust(required_line_len)
 
@@ -119,10 +118,12 @@ def carga_view(request: HttpRequest) -> HttpResponse:
     if preview_records:
         tipo_a_count = sum(1 for r in preview_records if (r.get('tipo') if isinstance(r, dict) else None) == 'A')
         tipo_b_count = sum(1 for r in preview_records if (r.get('tipo') if isinstance(r, dict) else None) == 'B')
+        tipo_m_count = sum(1 for r in preview_records if (r.get('tipo') if isinstance(r, dict) else None) == 'M')
         total_count = len(preview_records)
     else:
         tipo_a_count = 0
         tipo_b_count = 0
+        tipo_m_count = 0
         total_count = 0
 
     context = {
@@ -131,6 +132,7 @@ def carga_view(request: HttpRequest) -> HttpResponse:
         'preview_records': preview_records,
         'tipo_a_count': tipo_a_count,
         'tipo_b_count': tipo_b_count,
+        'tipo_m_count': tipo_m_count,
         'total_count': total_count,
     }
     # Depuración: mostrar primer registro de preview (si existe) para verificar valores antes de render
