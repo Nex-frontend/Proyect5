@@ -14,9 +14,78 @@ from django.db.models import Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.http import JsonResponse
 
 from .forms import SignUpForm
 from .models import Record, Activity
+from django.views.generic import CreateView
+
+
+def parse_and_save_files(files, FIELDS, required_line_len, required_min_len, request):
+    """Parse uploaded files and save Records according to FIELDS mapping.
+
+    Returns a tuple (created_count, errors).
+    """
+    errors = []
+    created = 0
+    batch = []
+    for f in files:
+        try:
+            content = f.read()
+            try:
+                text = content.decode('utf-8-sig')
+            except Exception:
+                try:
+                    text = content.decode('utf-8')
+                except UnicodeDecodeError:
+                    text = content.decode('latin-1')
+            if text and text[0] == '\ufeff':
+                text = text.lstrip('\ufeff')
+
+            lines = [ln.rstrip('\r\n') for ln in text.splitlines() if ln.strip()]
+            if not lines:
+                continue
+
+            for idx, line in enumerate(lines, start=1):
+                if len(line) < required_min_len:
+                    errors.append({'file': f.name, 'line': idx, 'error': f'Longitud {len(line)} < {required_min_len}'})
+                    continue
+                if len(line) < required_line_len:
+                    line = normalize_short_line(line, required_min_len, required_line_len)
+                data = {field: line[start:end].strip() for field, start, end in FIELDS}
+                # fallback for ptje relocation
+                if required_min_len >= 94 and required_line_len >= 157 and not data.get('ptje'):
+                    data['ptje'] = line[155:157].strip()
+                # override session values for lote/qna if present
+                data['lote_anterior'] = request.session.get('lote_anterior') or data.get('lote_anterior')
+                data['qna_ini'] = request.session.get('qna_ini') or data.get('qna_ini')
+
+                rec = Record(
+                    rfc=data.get('rfc', '')[:13],
+                    nombre=data.get('nombre', '')[:30],
+                    cadena1=(data.get('cadena1')[:37] or None),
+                    tipo=data.get('tipo', '')[:1],
+                    impor=data.get('impor', '')[:8],
+                    cpto=data.get('cpto', '')[:2],
+                    lote_actual=data.get('lote_actual', '')[:1],
+                    qna=data.get('qna', '')[:6],
+                    ptje=data.get('ptje', '')[:2],
+                    observacio=(data.get('observacio')[:47] or None),
+                    lote_anterior=(data.get('lote_anterior')[:6] or None),
+                    qna_ini=(data.get('qna_ini')[:6] or None),
+                )
+                batch.append(rec)
+        except Exception as e:
+            errors.append({'file': getattr(f, 'name', 'unknown'), 'error': str(e)})
+    if batch:
+        try:
+            with transaction.atomic():
+                Record.objects.bulk_create(batch, batch_size=1000)
+            created = len(batch)
+        except Exception as e:
+            errors.append({'error': str(e)})
+    return created, errors
 
 
 def normalize_short_line(line: str, required_min_len: int, required_line_len: int) -> str:
@@ -33,10 +102,11 @@ def normalize_short_line(line: str, required_min_len: int, required_line_len: in
         upto = min(len(line), 92)
         for i in range(upto):
             buf[i] = line[i]
+        # mover índices 92->155 y 93->156 (0-based)
         if len(line) > 92:
-            buf[98] = line[92]
+            buf[155] = line[92]
         if len(line) > 93:
-            buf[99] = line[93]
+            buf[156] = line[93]
         return ''.join(buf)
     return line.ljust(required_line_len)
 
@@ -525,3 +595,84 @@ def clear_preview_view(request: HttpRequest) -> JsonResponse:
     request.session.pop('preview_records', None)
     request.session.pop('preview_errors', None)
     return JsonResponse({'ok': True})
+
+
+@method_decorator(permission_required('fovisste.add_record', raise_exception=True), name='dispatch')
+class Concept55CreateView(CreateView):
+    template_name = 'carga_concept_55.html'
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, {})
+
+    def post(self, request, *args, **kwargs):
+        files = request.FILES.getlist('files')
+        FIELDS = [
+            ("rfc", 0, 13),
+            ("nombre", 13, 43),
+            ("cadena1", 43, 80),
+            ("tipo", 80, 81),
+            ("impor", 81, 89),
+            ("cpto", 89, 91),
+            ("lote_actual", 91, 92),
+            ("qna", 92, 98),
+            ("ptje", 98, 100),
+            ("observacio", 100, 147),
+            ("lote_anterior", 147, 153),
+            ("qna_ini", 153, 159),
+        ]
+        created, errors = parse_and_save_files(files, FIELDS, required_line_len=159, required_min_len=94, request=request)
+        return JsonResponse({'ok': True, 'created': created, 'errors': errors})
+
+
+@method_decorator(permission_required('fovisste.add_record', raise_exception=True), name='dispatch')
+class Concept56CreateView(CreateView):
+    template_name = 'carga_concept_56.html'
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, {})
+
+    def post(self, request, *args, **kwargs):
+        files = request.FILES.getlist('files')
+        FIELDS = [
+            ("rfc", 0, 13),
+            ("nombre", 13, 43),
+            ("cadena1", 43, 76),
+            ("tipo", 80, 81),
+            ("impor", 81, 89),
+            ("cpto", 89, 91),
+            ("lote_actual", 91, 92),
+            ("qna", 92, 98),
+            ("ptje", 98, 100),
+            ("observacio", 100, 147),
+            ("lote_anterior", 147, 153),
+            ("qna_ini", 153, 159),
+        ]
+        created, errors = parse_and_save_files(files, FIELDS, required_line_len=159, required_min_len=94, request=request)
+        return JsonResponse({'ok': True, 'created': created, 'errors': errors})
+
+
+@method_decorator(permission_required('fovisste.add_record', raise_exception=True), name='dispatch')
+class Concept64CreateView(CreateView):
+    template_name = 'carga_concept_64.html'
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, {})
+
+    def post(self, request, *args, **kwargs):
+        files = request.FILES.getlist('files')
+        FIELDS = [
+            ("rfc", 0, 13),
+            ("nombre", 13, 43),
+            ("cadena1", 43, 80),
+            ("tipo", 80, 81),
+            ("impor", 81, 89),
+            ("cpto", 89, 91),
+            ("lote_actual", 91, 92),
+            ("qna", 92, 98),
+            ("ptje", 98, 100),
+            ("observacio", 100, 104),
+            ("lote_anterior", 147, 153),
+            ("qna_ini", 153, 159),
+        ]
+        created, errors = parse_and_save_files(files, FIELDS, required_line_len=159, required_min_len=94, request=request)
+        return JsonResponse({'ok': True, 'created': created, 'errors': errors})
