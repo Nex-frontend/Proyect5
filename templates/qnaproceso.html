@@ -41,7 +41,7 @@
   <div style="margin-top:1rem; display:flex; justify-content:left;">
     <label style="display:flex; align-items:center; gap:1rem;">
       <span style="min-width:160px">Selecciona el concepto a cargar</span>
-      <select id="concept-select" style="max-width:210px;">
+      <select id="concept-select" style="max-width:210px;" name="concept_select">
         <option value="">-- Seleccionar --</option>
         <option value="55">55</option>
         <option value="56">56</option>
@@ -49,6 +49,14 @@
       </select>
     </label>
   </div>
+  <!-- hidden input para enviar el concepto seleccionado en el POST al pulsar Cargar -->
+  <input type="hidden" id="concept-input" name="concept" value="" />
+
+  <div style="display:flex; gap:1rem; justify-content:center; margin-top:1rem;"> {# Botones del formulario #}
+    <button type="submit" name="save" class="btn-entrar">Cargar</button>
+    <button type="submit" name="cancel" class="btn-entrar" formnovalidate>Cancelar</button>
+  </div>
+
 </form>
 
 <script> // Script para validar los campos
@@ -58,12 +66,11 @@
       e.target.value = e.target.value.replace(/\D+/g,'').slice(0, e.target.maxLength || 99); // Restringe a dígitos y respeta maxlength
     }
   });
-  // Redirigir a la página del concepto seleccionado
+  // Al cambiar el select sólo sincronizamos el hidden input; la redirección se hace al pulsar "Cargar"
   document.getElementById('concept-select')?.addEventListener('change', function(e){
     const v = e.target.value;
-    if (!v) return;
-    // Cada concepto tiene su propia página
-    window.location.href = `/foviste/carga/concept/${v}/`;
+    const hid = document.getElementById('concept-input');
+    if (hid) hid.value = v || '';
   });
 </script>
 

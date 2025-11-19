@@ -273,6 +273,14 @@ def qnaproceso_view(request: HttpRequest) -> HttpResponse:
                 request.session['qna_ini'] = qna
                 request.session['lote_anterior'] = lote
                 messages.success(request, 'Datos guardados. Ahora puedes realizar la carga de archivos.')
+                # Si el formulario contiene el concepto, redirigir a la plantilla de carga de ese concepto
+                concept = (request.POST.get('concept') or '').strip()
+                if concept in ('55', '56', '64'):
+                    try:
+                        return redirect(reverse(f'carga_concept_{concept}'))
+                    except Exception:
+                        # En caso de error al resolver la URL, caer al flujo por defecto
+                        pass
                 return redirect('carga')
     # GET o POST inválido: renderizar formulario mostrando valores actuales si existen
     ctx = {
@@ -323,8 +331,12 @@ def update_lote_view(request: HttpRequest) -> JsonResponse:
         request.session.pop('preview_errors', None)
         return JsonResponse({'ok': True})
     return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
-@permission_required('fovisste.add_record', raise_exception=True)
 def api_upload_view(request: HttpRequest) -> JsonResponse:
+    # Manejo explícito de autenticación/permiso para peticiones AJAX
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'error': 'No autenticado. Inicia sesión.'}, status=401)
+    if not request.user.has_perm('fovisste.add_record'):
+        return JsonResponse({'ok': False, 'error': 'No tiene permiso para realizar cargas.'}, status=403)
     """Carga de archivos de ancho fijo y grabado directo en MySQL vía ORM.
 
     Formato confirmado (posiciones 0..158, longitudes entre paréntesis):
@@ -503,9 +515,12 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
         request.session.pop('qna_ini', None)
         request.session.pop('lote_anterior', None)
 
-@login_required # Preview de archivos antes de guardar
-@permission_required('fovisste.add_record', raise_exception=True)
 def preview_upload_view(request: HttpRequest) -> JsonResponse:
+    # Manejo explícito de autenticación/permiso para devolver JSON en caso de error
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'error': 'No autenticado. Inicia sesión.'}, status=401)
+    if not request.user.has_perm('fovisste.add_record'):
+        return JsonResponse({'ok': False, 'error': 'No tiene permiso para realizar cargas.'}, status=403)
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
 
@@ -581,16 +596,23 @@ def preview_upload_view(request: HttpRequest) -> JsonResponse:
     # Guardar en sesión para mostrar en carga.html
     request.session['preview_records'] = preview_records
     request.session['preview_errors'] = errors
+    # Devolver también los registros de preview para que la UI los pueda renderizar inmediatamente
+    # Limitar tamaño razonable para evitar respuestas gigantescas (por ejemplo, 500 registros)
+    max_return = 500
+    returned = preview_records[:max_return]
+    return JsonResponse({'ok': True, 'preview_count': len(preview_records), 'preview_records': returned, 'errors': errors})
 
-    return JsonResponse({'ok': True, 'preview_count': len(preview_records), 'errors': errors})
 
-
-@login_required
-@permission_required('fovisste.add_record', raise_exception=True)
 def clear_preview_view(request: HttpRequest) -> JsonResponse:
     """Elimina keys de preview de la sesión para que la página de carga no muestre nada."""
     if request.method != 'POST':
         return JsonResponse({'ok': False, 'error': 'Método no permitido'}, status=405)
+
+    # Comprobaciones de autenticación/permiso
+    if not request.user.is_authenticated:
+        return JsonResponse({'ok': False, 'error': 'No autenticado. Inicia sesión.'}, status=401)
+    if not request.user.has_perm('fovisste.add_record'):
+        return JsonResponse({'ok': False, 'error': 'No tiene permiso para realizar esta acción.'}, status=403)
 
     request.session.pop('preview_records', None)
     request.session.pop('preview_errors', None)
