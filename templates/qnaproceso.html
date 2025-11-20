@@ -2,7 +2,7 @@
 {% block content %}
 <h2>Carga - Quincena de proceso</h2>
 
-<form action="" method="post"> {# Formulario de quincena de proceso #}
+<form id="qnaproceso-form" action="" method="post"> {# Formulario de quincena de proceso #}
   {% csrf_token %} {# Token de seguridad #}
   <fieldset> {# Campos del formulario #}
     <label style="display:flex; align-items:center; gap:1rem;">
@@ -72,10 +72,16 @@
     const hid = document.getElementById('concept-input');
     if (hid) hid.value = v || '';
   });
-</script>
 
-  <div style="display:flex; gap:1rem; justify-content:center; margin-top:1rem;"> {# Botones del formulario #}
-    <button type="submit" name="save" class="btn-entrar">Cargar</button>
-    <button type="submit" name="cancel" class="btn-entrar" formnovalidate>Cancelar</button>
-  </div>
+  // Asegurar que al enviar el formulario siempre se copie el valor del select al hidden
+  const qpForm = document.getElementById('qnaproceso-form');
+  if (qpForm){
+    qpForm.addEventListener('submit', function(e){
+      const sel = document.getElementById('concept-select');
+      const hid = document.getElementById('concept-input');
+      if (hid && sel) hid.value = sel.value || '';
+      return true;
+    });
+  }
+</script>
 {% endblock %}

@@ -256,6 +256,8 @@ def qnaproceso_view(request: HttpRequest) -> HttpResponse:
             return redirect('dashboard')
         qna = (request.POST.get('qna_proceso') or '').strip()
         lote = (request.POST.get('lote') or '').strip()
+        concept_submitted = (request.POST.get('concept') or '').strip()
+        print(f"DEBUG qnaproceso_view POST received: qna={qna!r}, lote={lote!r}, concept={concept_submitted!r}")
         # Validaciones: qna = YYYYMM (6 dígitos), lote = 4 caracteres (asumimos dígitos)
         import re
         ok = True
@@ -263,7 +265,7 @@ def qnaproceso_view(request: HttpRequest) -> HttpResponse:
             messages.error(request, 'Quincena Proceso debe tener 6 dígitos con formato AAAAMM (ejemplo: 202508).')
             ok = False
         if not re.fullmatch(r"\d{4}", lote):
-            messages.error(request, 'Lote debe tener 5 dígitos.')
+            messages.error(request, 'Lote debe tener 4 dígitos.')
             ok = False
         if ok:
             # Nueva validación: verificar si el lote ya está duplicado en la BD
@@ -274,11 +276,13 @@ def qnaproceso_view(request: HttpRequest) -> HttpResponse:
                 request.session['lote_anterior'] = lote
                 messages.success(request, 'Datos guardados. Ahora puedes realizar la carga de archivos.')
                 # Si el formulario contiene el concepto, redirigir a la plantilla de carga de ese concepto
-                concept = (request.POST.get('concept') or '').strip()
+                concept = concept_submitted
+                print(f"DEBUG qnaproceso_view: after save intent redirect to concept={concept!r}")
                 if concept in ('55', '56', '64'):
                     try:
                         return redirect(reverse(f'carga_concept_{concept}'))
-                    except Exception:
+                    except Exception as e:
+                        print(f"DEBUG qnaproceso_view: redirect failed: {e}")
                         # En caso de error al resolver la URL, caer al flujo por defecto
                         pass
                 return redirect('carga')
@@ -375,6 +379,23 @@ def api_upload_view(request: HttpRequest) -> JsonResponse:
         batch = []
         if not preview_records:
             return JsonResponse({'ok': False, 'error': 'No hay registros en preview para confirmar.'}, status=400)
+
+        # Evitar cargas duplicadas por combinación (qna_ini, lote_anterior, cpto)
+        qna_ini = request.session.get('qna_ini')
+        lote_anterior = request.session.get('lote_anterior')
+        # Obtener el conjunto de conceptos que se intentan cargar
+        conceptos_en_preview = set([d.get('cpto') for d in preview_records if d.get('cpto')])
+        if conceptos_en_preview:
+            duplicates = []
+            for c in conceptos_en_preview:
+                if Record.objects.filter(qna_ini=qna_ini, lote_anterior=lote_anterior, cpto=c).exists():
+                    duplicates.append(c)
+            if duplicates:
+                return JsonResponse({
+                    'ok': False,
+                    'error': 'Ya existen registros para el/los concepto(s) especificado(s) en esta Quincena y Lote.',
+                    'duplicate_concepts': list(duplicates)
+                }, status=400)
 
         for data in preview_records:
             rec = Record(
@@ -593,6 +614,33 @@ def preview_upload_view(request: HttpRequest) -> JsonResponse:
         request.session['preview_errors'] = errors
         return JsonResponse({'ok': True, 'preview_count': 0, 'errors': errors})
 
+    # Anotar duplicados dentro del preview (mismo RFC + CPTO) y con la BD
+    # Contar ocurrencias en preview por (rfc, cpto)
+    key_counts = {}
+    for d in preview_records:
+        key = (d.get('rfc') or '', d.get('cpto') or '')
+        key_counts[key] = key_counts.get(key, 0) + 1
+
+    # Consultar existentes en BD para la combinación qna_ini + lote_anterior
+    qna_ini = request.session.get('qna_ini')
+    lote_anterior = request.session.get('lote_anterior')
+    rfcs = set([d.get('rfc') or '' for d in preview_records])
+    cptos = set([d.get('cpto') or '' for d in preview_records])
+    existing_pairs = set()
+    if qna_ini and lote_anterior and rfcs and cptos:
+        qs = Record.objects.filter(qna_ini=qna_ini, lote_anterior=lote_anterior, rfc__in=list(rfcs), cpto__in=list(cptos))
+        for r in qs.values('rfc', 'cpto'):
+            existing_pairs.add((r.get('rfc') or '', r.get('cpto') or ''))
+
+    has_duplicates = False
+    # Añadir flags a cada registro
+    for d in preview_records:
+        key = (d.get('rfc') or '', d.get('cpto') or '')
+        d['duplicate_preview'] = key_counts.get(key, 0) > 1
+        d['duplicate_existing'] = key in existing_pairs
+        if d['duplicate_preview'] or d['duplicate_existing']:
+            has_duplicates = True
+
     # Guardar en sesión para mostrar en carga.html
     request.session['preview_records'] = preview_records
     request.session['preview_errors'] = errors
@@ -600,7 +648,7 @@ def preview_upload_view(request: HttpRequest) -> JsonResponse:
     # Limitar tamaño razonable para evitar respuestas gigantescas (por ejemplo, 500 registros)
     max_return = 500
     returned = preview_records[:max_return]
-    return JsonResponse({'ok': True, 'preview_count': len(preview_records), 'preview_records': returned, 'errors': errors})
+    return JsonResponse({'ok': True, 'preview_count': len(preview_records), 'preview_records': returned, 'errors': errors, 'has_duplicates': has_duplicates})
 
 
 def clear_preview_view(request: HttpRequest) -> JsonResponse:
