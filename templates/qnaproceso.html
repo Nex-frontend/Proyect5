@@ -28,7 +28,7 @@
         type="text" 
         name="lote" 
         value="{{ lote_anterior }}"
-        placeholder="2500" 
+        placeholder="2560" 
         pattern="\d{4}"
         maxlength="4"
         inputmode="numeric"
@@ -38,16 +38,9 @@
     </label>
   </fieldset>
 
-  <div style="margin-top:1rem; display:flex; justify-content:left;">
-    <label style="display:flex; align-items:center; gap:1rem;">
-      <span style="min-width:160px">Selecciona el concepto a cargar</span>
-      <select id="concept-select" style="max-width:210px;">
-        <option value="">-- Seleccionar --</option>
-        <option value="55">55</option>
-        <option value="56">56</option>
-        <option value="64">64</option>
-      </select>
-    </label>
+  <div style="display:flex; gap:1rem; justify-content:center; margin-top:1rem;"> {# Botones del formulario #}
+    <button type="submit" name="save" class="btn-entrar">Cargar</button>
+    <button type="submit" name="cancel" class="btn-entrar" formnovalidate>Cancelar</button>
   </div>
 </form>
 
@@ -58,17 +51,6 @@
       e.target.value = e.target.value.replace(/\D+/g,'').slice(0, e.target.maxLength || 99); // Restringe a dígitos y respeta maxlength
     }
   });
-  // Redirigir a la página del concepto seleccionado
-  document.getElementById('concept-select')?.addEventListener('change', function(e){
-    const v = e.target.value;
-    if (!v) return;
-    // Cada concepto tiene su propia página
-    window.location.href = `/foviste/carga/concept/${v}/`;
-  });
 </script>
 
-  <div style="display:flex; gap:1rem; justify-content:center; margin-top:1rem;"> {# Botones del formulario #}
-    <button type="submit" name="save" class="btn-entrar">Cargar</button>
-    <button type="submit" name="cancel" class="btn-entrar" formnovalidate>Cancelar</button>
-  </div>
 {% endblock %}

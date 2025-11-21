@@ -27,9 +27,6 @@ urlpatterns = [
     # URLs de la aplicación
     path('', views.dashboard_view, name='dashboard'),
     path('foviste/carga/', views.carga_view, name='carga'),
-    path('foviste/carga/concept/55/', views.Concept55CreateView.as_view(), name='carga_concept_55'),
-    path('foviste/carga/concept/56/', views.Concept56CreateView.as_view(), name='carga_concept_56'),
-    path('foviste/carga/concept/64/', views.Concept64CreateView.as_view(), name='carga_concept_64'),
     path('foviste/consulta/', views.consulta_view, name='consulta'),
     path('foviste/qnaproceso/', views.qnaproceso_view, name='qnaproceso'),
     path('foviste/resultados/', views.resultados_view, name='resultados'),
