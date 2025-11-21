@@ -5,14 +5,10 @@
   Arrastra y suelta archivos aquí o haz clic para seleccionar.
   <input id="fileElem" type="file" multiple style="display:none" />
 </div>
-<div id="preview-area" style="margin-top:1rem;"></div>
-<div style="margin-top:0.5rem;">
-  <button id="confirm-upload" disabled class="btn-entrar">Confirmar carga</button>
-  <button id="clear-preview" disabled class="btn-entrar">Borrar previsualización</button>
-</div>
 <div id="upload-result" style="margin-top:1rem;"></div>
 
 <script>
+/* same JS as other concept page */
 document.addEventListener('DOMContentLoaded', () => {
   const dropArea = document.getElementById('drop-area');
   const fileElem = document.getElementById('fileElem');
@@ -37,114 +33,42 @@ document.addEventListener('DOMContentLoaded', () => {
     return cookieValue;
   }
 
-  function renderPreviewTable(records){
-    const preview = document.getElementById('preview-area');
-    if (!preview) return;
-    if (!records || !records.length){ preview.innerHTML = '<em>No hay registros para previsualizar.</em>'; return; }
-    let html = '<div><strong>Previsualización ('+records.length+')</strong></div>';
-    html += '<table class="table" style="width:100%; border-collapse:collapse; margin-top:0.5rem;">';
-    html += '<thead><tr><th>RFC</th><th>Nombre</th><th>Tipo</th><th>Importe</th><th>Cpto</th><th>Qna</th><th>Lote</th><th>Ptje</th></tr></thead><tbody>';
-    records.forEach(r=>{
-      html += '<tr>'+
-        '<td>'+ (r.rfc||'') +'</td>'+
-        '<td>'+ (r.nombre||'') +'</td>'+
-        '<td>'+ (r.tipo||'') +'</td>'+
-        '<td>'+ (r.impor||'') +'</td>'+
-        '<td>'+ (r.cpto||'') +'</td>'+
-        '<td>'+ (r.qna||'') +'</td>'+
-        '<td>'+ (r.lote_anterior||'') +'</td>'+
-        '<td>'+ (r.ptje||'') +'</td>'+
-      '</tr>';
-    });
-    html += '</tbody></table>';
-    preview.innerHTML = html;
-  }
-
-  function escapeHtml(unsafe){
-    return unsafe.replace(/[&<"'>]/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; });
-  }
-
-  async function uploadFiles(files){
+  function uploadFiles(files){
     const fd = new FormData();
     for (let i=0;i<files.length;i++) fd.append('files', files[i]);
     const out = document.getElementById('upload-result');
-    const confirmBtn = document.getElementById('confirm-upload');
-    const clearBtn = document.getElementById('clear-preview');
-    if (out) out.innerHTML = 'Generando previsualización...';
-    try{
-      const resp = await fetch('/api/preview/', { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: fd });
-      const ct = resp.headers.get('content-type') || '';
-      if (!ct.includes('application/json')){
-        const text = await resp.text();
-        out.innerHTML = '<div class="error">Respuesta inesperada del servidor (no JSON):</div><pre>'+escapeHtml(text)+'</pre>';
-        return;
-      }
-      const data = await resp.json();
-      if (!data.ok){
-        out.innerHTML = '<div class="error">Error: '+ (data.error||'Error en preview') +'</div>';
-        return;
-      }
-      renderPreviewTable(data.preview_records || []);
-      out.innerHTML = `<div>Registros en preview: ${data.preview_count}.</div>`;
-      if (data.errors && data.errors.length){
-        out.innerHTML += `<div><strong>Errores:</strong><ul>`+ data.errors.slice(0,50).map(e=>`<li>${e.file||''} l:${e.line||''} ${e.error||''}</li>`).join('') +`</ul></div>`;
-      }
-      if (confirmBtn) confirmBtn.disabled = !(data.preview_count>0);
-      if (clearBtn) clearBtn.disabled = false;
-    }catch(err){ if (out) out.innerHTML = 'Error: '+err; }
+    if (out) out.innerHTML = 'Procesando...';
+    fetch(window.location.pathname, { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: fd })
+      .then(response => {
+        const ct = response.headers.get('content-type') || '';
+        if (ct.includes('application/json')) return response.json();
+        return response.text();
+      })
+      .then(data => {
+        if (!out) return;
+        if (typeof data === 'string') {
+          out.innerHTML = 'Respuesta del servidor:<br><pre>'+data+'</pre>';
+          return;
+        }
+        let html = '';
+        if (data.ok) {
+          html += `<div><strong>Registros creados:</strong> ${data.created}</div>`;
+          if (data.errors && data.errors.length) {
+            html += `<div><strong>Errores (${data.errors.length}):</strong><ul>`;
+            data.errors.slice(0,50).forEach(e=>{
+              html += `<li>${e.file || ''} line ${e.line || ''}: ${e.error || JSON.stringify(e)}</li>`;
+            });
+            if (data.errors.length > 50) html += `<li>...(${data.errors.length - 50} más)</li>`;
+            html += `</ul></div>`;
+          }
+        } else {
+          html = '<div>Error en la carga.</div>';
+          if (data.errors) html += `<pre>${JSON.stringify(data.errors,null,2)}</pre>`;
+        }
+        out.innerHTML = html;
+      })
+      .catch(err=>{ if (out) out.innerHTML = 'Error: '+err; });
   }
-
-  async function confirmUpload(){
-    const out = document.getElementById('upload-result');
-    if (out) out.innerHTML = 'Confirmando carga...';
-    const fd = new FormData(); fd.append('confirm','1');
-    try{
-      const resp = await fetch('/api/upload/', { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')}, body: fd });
-      const ct = resp.headers.get('content-type') || '';
-      if (!ct.includes('application/json')){
-        const text = await resp.text();
-        out.innerHTML = '<div class="error">Respuesta inesperada del servidor (no JSON):</div><pre>'+escapeHtml(text)+'</pre>';
-        return;
-      }
-      const data = await resp.json();
-      if (data.ok){
-        out.innerHTML = `<div><strong>Registros creados:</strong> ${data.created}</div>`;
-        if (data.errors && data.errors.length) out.innerHTML += `<pre>${JSON.stringify(data.errors,null,2)}</pre>`;
-        // limpiar preview UI
-        renderPreviewTable([]);
-        document.getElementById('confirm-upload').disabled = true;
-        document.getElementById('clear-preview').disabled = true;
-      } else {
-        out.innerHTML = '<div class="error">Error: '+ (data.error||'No se confirmó') +'</div>';
-      }
-    }catch(err){ if (out) out.innerHTML = 'Error: '+err; }
-  }
-
-  async function clearPreview(){
-    const out = document.getElementById('upload-result');
-    if (out) out.innerHTML = 'Limpiando previsualización...';
-    try{
-      const resp = await fetch('/api/clear_preview/', { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')} });
-      const ct = resp.headers.get('content-type') || '';
-      if (!ct.includes('application/json')){
-        const text = await resp.text();
-        if (out) out.innerHTML = '<div class="error">Respuesta inesperada del servidor (no JSON):</div><pre>'+escapeHtml(text)+'</pre>';
-        return;
-      }
-      const data = await resp.json();
-      if (data.ok){
-        renderPreviewTable([]);
-        if (out) out.innerHTML = '<div>Previsualización eliminada.</div>';
-        document.getElementById('confirm-upload').disabled = true;
-        document.getElementById('clear-preview').disabled = true;
-      } else {
-        if (out) out.innerHTML = '<div class="error">Error al limpiar preview</div>';
-      }
-    }catch(err){ if (out) out.innerHTML = 'Error: '+err; }
-  }
-
-  document.getElementById('confirm-upload')?.addEventListener('click', e=>{ e.preventDefault(); confirmUpload(); });
-  document.getElementById('clear-preview')?.addEventListener('click', e=>{ e.preventDefault(); clearPreview(); });
 });
 </script>
 {% endblock %}
