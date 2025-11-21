@@ -1,12 +1,6 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Carga - Concepto 55</h2>
-
-
-<div style="background-color: #15bedb; border: 1px solid #000000; padding: 10px; margin-bottom: 20px; border-radius: 5px;">
-    <strong>📋 Configuración Actual:</strong> Quincena <strong>{{ qna_ini }}</strong> | Lote <strong>{{ lote_anterior }}</strong>
-</div>
-
 <div id="drop-area" class="drag-area">
   Arrastra y suelta archivos aquí o haz clic para seleccionar.
   <input id="fileElem" type="file" multiple style="display:none" />
@@ -51,10 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
     html += '<table class="table" style="width:100%; border-collapse:collapse; margin-top:0.5rem;">';
     html += '<thead><tr><th>RFC</th><th>Nombre</th><th>Tipo</th><th>Importe</th><th>Cpto</th><th>Qna</th><th>Lote</th><th>Ptje</th></tr></thead><tbody>';
     records.forEach(r=>{
-      const isDup = r.duplicate_preview || r.duplicate_existing;
-      const dupMark = isDup ? ' <span style="color:#a00;">⚠️</span>' : '';
-      html += '<tr'+(isDup? ' style="background:#ffecec"':'')+'>'+
-        '<td>'+ (r.rfc||'') + dupMark +'</td>'+
+      html += '<tr>'+
+        '<td>'+ (r.rfc||'') +'</td>'+
         '<td>'+ (r.nombre||'') +'</td>'+
         '<td>'+ (r.tipo||'') +'</td>'+
         '<td>'+ (r.impor||'') +'</td>'+
@@ -97,11 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.errors && data.errors.length){
         out.innerHTML += `<div><strong>Errores:</strong><ul>`+ data.errors.slice(0,50).map(e=>`<li>${e.file||''} l:${e.line||''} ${e.error||''}</li>`).join('') +`</ul></div>`;
       }
-      // Deshabilitar confirmar si no hay registros o si hay duplicados (en preview o ya en BD)
-      if (confirmBtn) confirmBtn.disabled = !(data.preview_count>0) || !!data.has_duplicates;
-      if (data.has_duplicates){
-        out.innerHTML += `<div class="error"><strong>Advertencia:</strong> Hay registros duplicados en la previsualización o que ya existen en la base de datos. Corrige antes de confirmar.</div>`;
-      }
+      if (confirmBtn) confirmBtn.disabled = !(data.preview_count>0);
       if (clearBtn) clearBtn.disabled = false;
     }catch(err){ if (out) out.innerHTML = 'Error: '+err; }
   }
