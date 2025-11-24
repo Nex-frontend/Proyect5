@@ -21,15 +21,14 @@ from .models import Record, Activity
 
 def normalize_short_line(line: str, required_min_len: int, required_line_len: int) -> str:
     """Normalize a short fixed-width line into the target length.
-    """"Normalizar una línea corta de ancho fijo a la longitud objetivo"
 
-    """Si required_min_len >= 94 y required_line_len >= 157, mueva los caracteres que originalmente 
+    Si required_min_len >= 94 y required_line_len >= 157, mueva los caracteres que originalmente 
     se encuentran en los índices 92 y 93 a los índices de destino 155 y 156 respectivamente, y deje 
     la región central como espacios. De lo contrario, rellene la línea a la derecha hasta alcanzar la longitud de destino.
     """
     if len(line) >= required_line_len: # Lo suficiente largo
         return line
-    if required_min_len <= 93 and required_line_len >= 156: # Regla especial de 94 a 157
+    if required_min_len >= 94 and required_line_len >= 157: # Regla especial de 94 a 157
         buf = list(' ' * required_line_len)
         upto = min(len(line), 92)
         for i in range(upto):
@@ -485,53 +484,8 @@ def preview_upload_view(request: HttpRequest) -> JsonResponse:
                 if len(line) < REQUIRED_MIN_LEN:
                     errors.append({'file': f.name, 'line': idx, 'error': f'Longitud {len(line)} < {REQUIRED_MIN_LEN}'})
                     continue
-
-                # Mantener la línea original para decisiones basadas en offsets reales
-                raw_line = line
-                raw_len = len(raw_line)
-                # Extraer CPTO desde posiciones originales si existe
-                raw_cpto = raw_line[89:91] if raw_len >= 91 else raw_line[89:91]
-
-                # Regla 1: si CPTO == '64' y la línea tiene al menos 93 chars,
-                # mover los valores en índices 92 y 93 a los índices 98 y 99.
-                if raw_cpto.strip() == '64' and raw_len >= 93:
-                    buf = list(' ' * REQUIRED_LINE_LEN)
-                    upto = min(raw_len, 92)
-                    for i in range(upto):
-                        if i < REQUIRED_LINE_LEN:
-                            buf[i] = raw_line[i]
-                    if raw_len > 92 and 98 < REQUIRED_LINE_LEN:
-                        buf[98] = raw_line[92]
-                    if raw_len > 93 and 99 < REQUIRED_LINE_LEN:
-                        buf[99] = raw_line[93]
-                    line = ''.join(buf)
-                else:
-                    # Regla 2: si CPTO no es 55 ni 64, insertar ceros en los índices 75..79
-                    # y desplazar el resto hacia la derecha (recortando al tamaño REQUIRED_LINE_LEN).
-                    if raw_cpto.strip() not in ('55', '64'):
-                        buf = list(' ' * REQUIRED_LINE_LEN)
-                        head_len = min(raw_len, 75)
-                        for i in range(head_len):
-                            buf[i] = raw_line[i]
-                        # colocar ceros en posiciones 75..79 (0-based)
-                        for zpos in range(75, 79):
-                            if zpos < REQUIRED_LINE_LEN:
-                                buf[zpos] = '0'
-                        # copiar el resto desplazado empezando en 80
-                        tail_src_start = 75
-                        tail_dst_start = 79
-                        max_tail = REQUIRED_LINE_LEN - tail_dst_start
-                        for j in range(0, max_tail):
-                            src_idx = tail_src_start + j
-                            dst_idx = tail_dst_start + j
-                            if src_idx < raw_len and dst_idx < REQUIRED_LINE_LEN:
-                                buf[dst_idx] = raw_line[src_idx]
-                        line = ''.join(buf)
-
-                # Si la línea modificada quedó más corta que REQUIRED_LINE_LEN, rellenar con espacios
                 if len(line) < REQUIRED_LINE_LEN:
-                    line = line.ljust(REQUIRED_LINE_LEN)
-
+                    line = normalize_short_line(line, REQUIRED_MIN_LEN, REQUIRED_LINE_LEN)
                 data = {field: line[start:end].rstrip() for field, start, end in FIELDS}
                 # Validar campos clave y loguear si están vacíos
                 # Fallback especial para PTJE cuando se usó la regla de 94
