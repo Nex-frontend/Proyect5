@@ -9,7 +9,10 @@ load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'dev-secret-key-change-me')
 DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
+
+# ALLOWED_HOSTS: Permitir localhost, 127.0.0.1, y cualquier dominio de ngrok (*.ngrok-free.dev, *.ngrok.io)
 ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS]  # Limpiar espacios en blanco
 
 INSTALLED_APPS = [
     'django.contrib.admin',
